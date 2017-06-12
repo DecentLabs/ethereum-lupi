@@ -3,9 +3,14 @@ pragma solidity ^0.4.11;
 import "./Owned.sol";
 
 contract lupi is owned {
+    // round parameters, set only in constructor
+    uint public requiredBetAmount;
+    uint public ticketCountLimit;
+    uint public feePt; // feePt in parts per million , ie. 10,000 = 1%
+
     struct Ticket {
         address player;
-        uint deposit;
+        uint deposit; // TODO: why do we need this?
         bytes32 secretBet;
         uint revealedBet;
     }
@@ -15,7 +20,7 @@ contract lupi is owned {
     State state = State.Betting;
 
     Ticket[] tickets;
-    uint revealedCount;
+    uint revealedCount; // TODO: shall we replace this with a getter returning revealedBets.length?
 
     // bet => tickets
     mapping(uint => uint[]) revealedTickets;
@@ -23,9 +28,27 @@ contract lupi is owned {
 
     uint winningTicket;
 
-    function lupi() {
+    // TODO: function getBets(address _player) constant returns bets[]
+
+    function lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _feePt ) {
+        requiredBetAmount = _requiredBetAmount;
+        ticketCountLimit = _ticketCountLimit;
+        feePt = _feePt;
         // ticket zero is reserved
-        tickets.push(Ticket(0, 0, 0, 0));
+        tickets.push(Ticket(0, 0, 0, 0)); // TODO: shall we replace this for a more readable logic?
+    }
+
+    function getRoundInfo() constant returns ( // FIXME: state doesn't seem to work
+            State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit,
+            uint _ticketCount, uint _revealedCount,
+            uint  winnablePotAmount) {
+        return ( state, requiredBetAmount, feePt, ticketCountLimit,
+            tickets.length -1, revealedBets.length,
+            (tickets.length -1) * requiredBetAmount - getFeeAmount());
+    }
+
+    function getFeeAmount() constant returns (uint feeAmount) {
+        return (tickets.length - 1) * requiredBetAmount * feePt / 1000000;
     }
 
     function sealBet(uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
@@ -38,12 +61,13 @@ contract lupi is owned {
     }
 
     function placeBet(bytes32 _secretBet) payable returns (uint ticket) {
-        require (state == State.Betting);
+        require (state == State.Betting && msg.value == requiredBetAmount
+            && ticketCountLimit < tickets.length -1);
         return tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
     }
 
     function bettingOver() {
-        require (state == State.Betting);
+        require (state == State.Betting && ticketCountLimit == tickets.length -1 );
         // TODO assert current time is after betting period
         state = State.Revealing;
     }
@@ -100,6 +124,7 @@ contract lupi is owned {
     }
 
     function payWinner() {
+        // TODO: deduct fee
         require(state == State.Closed);
         require(winningTicket != 0);
         // all money goes to winner
@@ -107,6 +132,7 @@ contract lupi is owned {
     }
 
     function refund(uint _ticket) {
+        // TODO: deduct fee
         require(state == State.Closed);
         require(winningTicket == 0);
         Ticket ticket = tickets[_ticket];
