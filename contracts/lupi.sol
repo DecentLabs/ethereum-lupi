@@ -1,7 +1,8 @@
 pragma solidity ^0.4.11;
 
-contract lupi {
+import "./Owned.sol";
 
+contract lupi is owned {
     struct Ticket {
         address player;
         uint deposit;
