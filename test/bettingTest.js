@@ -1,6 +1,6 @@
-var lupi = artifacts.require("./lupi.sol");
+var lupi = artifacts.require("./Lupi.sol");
 
-contract("lupi", function(accounts) {
+contract("Lupi", function(accounts) {
     var instance, ownerAddress;
     var gasUseLog = new Array();
     var salt = 0xdb8780d713083a9addb6494cfc767d6ef4b1358315737e06bbb7fd84cc493d1c;
@@ -18,15 +18,6 @@ contract("lupi", function(accounts) {
             done();
         });
     }); // before()
-
-    it('contract should be set with initial parameters', function(done) {
-        return instance.getRoundInfo()
-        .then( res => {
-            assert.equal(res[0], 0, "state should be 'Betting' (0)");
-            assert(false, "TODO: assert other round params with bignumber compare");
-            done();
-        });
-    });
 
     it('should be possible to seal a bet for myself', function() {
         var sealedBet = 0x8eee4611778dd1659049d56a6f0ead527aad090d423fdc19c1407f586aa5ebff;

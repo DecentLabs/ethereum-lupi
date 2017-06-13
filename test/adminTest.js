@@ -1,11 +1,14 @@
-var lupi = artifacts.require("./lupi.sol");
+var lupi = artifacts.require("./Lupi.sol");
 
-contract("lupi", function(accounts) {
+contract("Lupi", function(accounts) {
     var instance, ownerAddress;
     var gasUseLog = new Array();
+    var requiredBetAmount = 1000000000000000000;
+    var ticketCountLimit = 2;
+    var feePt = 10000;
 
     before(function(done) {
-        lupi.deployed()
+        lupi.new(requiredBetAmount, ticketCountLimit, feePt)
         .then( contractInstance => {
             instance = contractInstance;
             return instance.owner();
@@ -18,6 +21,19 @@ contract("lupi", function(accounts) {
     function logGasUse(tran, tx) {
         gasUseLog.push(  [tran, tx.receipt.gasUsed ]);
     } //  logGasUse ()
+
+    it('contract should be setup with initial parameters', function() {
+        return instance.getRoundInfo()
+        .then( res => {
+            assert.equal(res[0], 0, "state should be 'Betting' (0)");
+            assert.equal(res[1], requiredBetAmount, "requiredBetAmount should be set");
+            assert.equal(res[2], feePt, "feePt should be set");
+            assert.equal(res[3], ticketCountLimit, "ticketCountLimit should be set");
+            assert.equal(res[4], 0, "ticketCount should be 0");
+            assert.equal(res[5], 0, "reveleadCount should be 0");
+            assert.equal(res[6], 0, "feeAmount should be 0");
+        });
+    });
 
     it('should be possible to change owner', function(done) {
         var newOwner = accounts[1];
@@ -32,6 +48,8 @@ contract("lupi", function(accounts) {
         }).then ( ownerRes => {
             assert.equal(ownerRes, newOwner, "owner() should return the new owner");
             ownerAddress = newOwner;
+            return instance.getRoundInfo()
+        }).then( res => {
             done();
         });
     }); // should be possible to change owner
