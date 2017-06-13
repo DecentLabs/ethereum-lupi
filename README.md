@@ -31,7 +31,7 @@ NOTE: It's a work in progress project. Contribution, code review and suggestions
 ```
 git clone --recursive https://github.com/DecentLabs/ethereum-lupi.git
 cd ethereum-lupi
-npm install
+yarn install
 ```
 * [testrpc](https://github.com/ethereumjs/testrpc) (global install): `npm run testrpc:install`
 * [truffle](http://truffleframework.com/docs/getting_started/installation) (global install): `npm run truffle:install`
@@ -41,7 +41,7 @@ npm install
 ```
 npm run testrpc:start
 npm run truffle:migrate
-npm run dev
+yarn start
 ```
 
 * Optional: An improved and customized [Ethereum explorer fork](https://github.com/szerintedmi/explorer)
