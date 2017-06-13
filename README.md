@@ -25,6 +25,7 @@ NOTE: It's a work in progress project. Contribution, code review and suggestions
 ### Prerequisites
 * [Ethereum CLI](https://www.ethereum.org/cli)
 * [nodejs](https://nodejs.org/en/download/)
+* yarn: `npm install -g yarn`
 * [node version manager](https://github.com/tj/n): `npm install -g n`
   * install 8.1.0 for testrpc:  `n 8.1.0` (TODO: decide on node version to be used)
 * [lupi repo](https://github.com/DecentLabs/ethereum-lupi):
