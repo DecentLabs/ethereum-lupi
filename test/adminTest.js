@@ -32,6 +32,9 @@ contract("Lupi", function(accounts) {
             assert.equal(res[4], 0, "ticketCount should be 0");
             assert.equal(res[5], 0, "reveleadCount should be 0");
             assert.equal(res[6], 0, "feeAmount should be 0");
+            assert.equal(res[7], 0, "winnablePot should be 0");
+            assert.equal(res[8], 0, "winningTicket should be 0");
+            assert.equal(res[9], 0, "winningNumber should be 0");
         });
     });
 

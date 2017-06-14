@@ -42,10 +42,18 @@ contract Lupi is owned {
     function getRoundInfo() constant returns ( // FIXME: state doesn't seem to work
             State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit,
             uint _ticketCount, uint _revealedCount,
-            uint  winnablePotAmount) {
+            uint feeAmount,
+            uint  winnablePotAmount,
+            uint winningTicket,
+            address winningAddress,
+            uint winningNumber) {
         return ( state, requiredBetAmount, feePt, ticketCountLimit,
             tickets.length -1, revealedCount,
-            (tickets.length -1) * requiredBetAmount - getFeeAmount());
+            getFeeAmount(),
+            (tickets.length -1) * requiredBetAmount - getFeeAmount(),
+            winningTicket,
+            tickets[winningTicket].player,
+            tickets[winningTicket].revealedBet);
     }
 
     function getFeeAmount() constant returns (uint feeAmount) {
@@ -61,14 +69,17 @@ contract Lupi is owned {
         return keccak256(_player, _bet, _salt);
     }
 
+    event e_BetPlaced (uint indexed ticketId);
     function placeBet(bytes32 _secretBet) payable returns (uint ticket) {
         require(state == State.Betting);
         require(msg.value == requiredBetAmount);
-        require(ticketCountLimit < tickets.length -1);
-        return tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
+        require( tickets.length < ticketCountLimit + 1 );
+        ticket = tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
+        e_BetPlaced(ticket);
+        return ticket;
     }
 
-    function bettingOver() {
+    function startRevealing() {
         require(state == State.Betting );
         require(ticketCountLimit == tickets.length -1 );
         state = State.Revealing;
@@ -81,7 +92,7 @@ contract Lupi is owned {
     // IDEA incentivize reveals with paying back a reserve
     function revealBet(address _player, uint _ticket, uint _bet, bytes32 _salt) {
         if (state == State.Betting) {
-            bettingOver();
+            startRevealing();
         }
         require (state == State.Revealing);
         require (_bet != 0);
