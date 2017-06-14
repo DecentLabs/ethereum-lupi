@@ -24,7 +24,7 @@ contract Lupi is owned {
 
     // bet => tickets
     mapping(uint => uint[]) revealedTickets;
-    uint[] revealedBets;
+    uint[] uniqueBets;
 
     uint winningTicket;
 
@@ -44,7 +44,7 @@ contract Lupi is owned {
             uint _ticketCount, uint _revealedCount,
             uint  winnablePotAmount) {
         return ( state, requiredBetAmount, feePt, ticketCountLimit,
-            tickets.length -1, revealedBets.length,
+            tickets.length -1, revealedCount,
             (tickets.length -1) * requiredBetAmount - getFeeAmount());
     }
 
@@ -71,7 +71,6 @@ contract Lupi is owned {
     function bettingOver() {
         require(state == State.Betting );
         require(ticketCountLimit == tickets.length -1 );
-        // TODO assert current time is after betting period
         state = State.Revealing;
     }
 
@@ -99,7 +98,7 @@ contract Lupi is owned {
 
         uint[] ids = revealedTickets[_bet];
         if (ids.length == 0) {
-            revealedBets.push(_bet);
+            uniqueBets.push(_bet);
         }
         ids.push(_ticket);
 
@@ -109,12 +108,13 @@ contract Lupi is owned {
     // IDEA make this iterative, so it scales indefinitely
     function declareWinner() {
         // TODO assert current time is after reveal period
+        // TODO: deduct fee
         require(state == State.Revealing);
         state = State.Closed;
         uint lowestBet;
         uint lowestTicket;
-        for (uint i = 0; i < revealedBets.length; i++) {
-            uint bet = revealedBets[i];
+        for (uint i = 0; i < uniqueBets.length; i++) {
+            uint bet = uniqueBets[i];
             if (lowestBet == 0 || bet < lowestBet) {
                 uint[] ids = revealedTickets[bet];
                 if (ids.length == 1) {
@@ -127,7 +127,6 @@ contract Lupi is owned {
     }
 
     function payWinner() {
-        // TODO: deduct fee
         require(state == State.Closed);
         require(winningTicket != 0);
         // all money goes to winner
@@ -135,7 +134,6 @@ contract Lupi is owned {
     }
 
     function refund(uint _ticket) {
-        // TODO: deduct fee
         require(state == State.Closed);
         require(winningTicket == 0);
         Ticket ticket = tickets[_ticket];
