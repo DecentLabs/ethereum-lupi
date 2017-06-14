@@ -28,7 +28,7 @@ contract("Lupi", function(accounts) {
         return instance.sealBet(2, salt1, { from: accounts[1] })
         .then( res => {
             //console.log("a) ", res);
-            assert.equal(res, expected, "sealBelt(number, salt) result should be as expected");
+            assert.equal(res, expected, "FIXME, known issue: sealBelt(number, salt) result should be as expected");
         });
         /* These don't work either each gets bet wiht a different result :-O
         instance.sealBet(2, salt1, { from: 0x94011c67bc1e6448ed4b8682047358ca6cd09470 })

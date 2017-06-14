@@ -17,16 +17,16 @@ contract Lupi is owned {
 
     enum State { Betting, Revealing, Closed }
 
-    State state = State.Betting;
+    State public state = State.Betting;
 
-    Ticket[] tickets;
-    uint revealedCount;
+    Ticket[] public tickets;
+    uint public revealedCount;
 
     // bet => tickets
-    mapping(uint => uint[]) revealedTickets;
-    uint[] uniqueBets;
+    mapping(uint => uint[]) public revealedTickets;
+    uint[] public uniqueBets;
 
-    uint winningTicket;
+    uint public winningTicket;
 
     // TODO: function getBets(address _player) constant returns bets[]
 
@@ -36,21 +36,21 @@ contract Lupi is owned {
         ticketCountLimit = _ticketCountLimit;
         feePt = _feePt;
         // ticket zero is reserved
-        tickets.push(Ticket(0, 0, 0, 0)); // TODO: shall we replace this for a more readable logic?
+        tickets.push(Ticket(0, 0, 0, 0)); // TODO:  replace this for a more readable logic? eg. new state
     }
 
-    function getRoundInfo() constant returns ( // FIXME: state doesn't seem to work
+    function getRoundInfo() constant returns (
             State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit,
             uint _ticketCount, uint _revealedCount,
-            uint feeAmount,
-            uint  winnablePotAmount,
-            uint winningTicket,
-            address winningAddress,
-            uint winningNumber) {
+            uint _feeAmount,
+            uint _winnablePotAmount,
+            uint _winningTicket,
+            address _winningAddress,
+            uint _winningNumber) {
         return ( state, requiredBetAmount, feePt, ticketCountLimit,
             tickets.length -1, revealedCount,
             getFeeAmount(),
-            (tickets.length -1) * requiredBetAmount - getFeeAmount(),
+            getWinnablePotAmount(),
             winningTicket,
             tickets[winningTicket].player,
             tickets[winningTicket].revealedBet);
@@ -58,6 +58,10 @@ contract Lupi is owned {
 
     function getFeeAmount() constant returns (uint feeAmount) {
         return (tickets.length - 1) * requiredBetAmount * feePt / 1000000;
+    }
+
+    function getWinnablePotAmount() constant returns (uint winnablePot) {
+        return (tickets.length -1) * requiredBetAmount - getFeeAmount() ;
     }
 
     function sealBet(uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
@@ -119,7 +123,6 @@ contract Lupi is owned {
     // IDEA make this iterative, so it scales indefinitely
     function declareWinner() {
         // TODO assert current time is after reveal period
-        // TODO: deduct fee
         require(state == State.Revealing);
         state = State.Closed;
         uint lowestBet;
@@ -135,20 +138,21 @@ contract Lupi is owned {
             }
         }
         winningTicket = lowestTicket;
+        owner.transfer(this.getFeeAmount());
     }
 
     function payWinner() {
         require(state == State.Closed);
         require(winningTicket != 0);
         // all money goes to winner
-        tickets[winningTicket].player.transfer(this.balance);
+        tickets[winningTicket].player.transfer(getWinnablePotAmount());
     }
 
     function refund(uint _ticket) {
         require(state == State.Closed);
         require(winningTicket == 0);
         Ticket ticket = tickets[_ticket];
-        uint value = ticket.deposit;
+        uint value = ticket.deposit - requiredBetAmount * feePt / 1000000;
         ticket.deposit = 0;
         ticket.player.transfer(value);
     }

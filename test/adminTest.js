@@ -18,8 +18,8 @@ contract("Lupi", function(accounts) {
         });
     }) // before()
 
-    function logGasUse(tran, tx) {
-        gasUseLog.push(  [tran, tx.receipt.gasUsed ]);
+    function logGasUse(testname, tran, tx) {
+        gasUseLog.push(  [testname, tran, tx.receipt.gasUsed ]);
     } //  logGasUse ()
 
     it('contract should be setup with initial parameters', function() {
@@ -34,7 +34,9 @@ contract("Lupi", function(accounts) {
             assert.equal(res[6], 0, "feeAmount should be 0");
             assert.equal(res[7], 0, "winnablePot should be 0");
             assert.equal(res[8], 0, "winningTicket should be 0");
-            assert.equal(res[9], 0, "winningNumber should be 0");
+            assert.equal(res[9], 0, "winnerAddress should be 0");
+            assert.equal(res[10], 0, "winningNumber should be 0");
+
         });
     });
 
@@ -43,7 +45,7 @@ contract("Lupi", function(accounts) {
 
         instance.setOwner(newOwner, { from: ownerAddress })
         .then( tx => {
-            logGasUse("setOwner() by owner", tx);
+            logGasUse("Change Owner", "setOwner() by owner", tx);
             assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
             assert.equal(tx.logs[0].args.old, ownerAddress, "old owner should be set in event");
             assert.equal(tx.logs[0].args.current, newOwner, "new owner should be set in event");
@@ -62,7 +64,7 @@ contract("Lupi", function(accounts) {
 
         instance.setOwner(newOwner, { from: newOwner })
         .then( tx => {
-            logGasUse("setOwner() by non owner", tx);
+            logGasUse("Change Owner", "setOwner() by non owner", tx);
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.owner();
         }).then ( ownerRes => {
