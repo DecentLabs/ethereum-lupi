@@ -2,7 +2,12 @@ pragma solidity ^0.4.11;
 
 import "./Owned.sol";
 
-contract lupi is owned {
+contract Lupi is owned {
+    // round parameters, set only in constructor
+    uint public requiredBetAmount;
+    uint public ticketCountLimit;
+    uint public feePt; // feePt in parts per million , ie. 10,000 = 1%
+
     struct Ticket {
         address player;
         uint deposit;
@@ -19,13 +24,32 @@ contract lupi is owned {
 
     // bet => tickets
     mapping(uint => uint[]) revealedTickets;
-    uint[] revealedBets;
+    uint[] uniqueBets;
 
     uint winningTicket;
 
-    function lupi() {
+    // TODO: function getBets(address _player) constant returns bets[]
+
+    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _feePt ) {
+        require(_ticketCountLimit > 0);
+        requiredBetAmount = _requiredBetAmount;
+        ticketCountLimit = _ticketCountLimit;
+        feePt = _feePt;
         // ticket zero is reserved
-        tickets.push(Ticket(0, 0, 0, 0));
+        tickets.push(Ticket(0, 0, 0, 0)); // TODO: shall we replace this for a more readable logic?
+    }
+
+    function getRoundInfo() constant returns ( // FIXME: state doesn't seem to work
+            State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit,
+            uint _ticketCount, uint _revealedCount,
+            uint  winnablePotAmount) {
+        return ( state, requiredBetAmount, feePt, ticketCountLimit,
+            tickets.length -1, revealedCount,
+            (tickets.length -1) * requiredBetAmount - getFeeAmount());
+    }
+
+    function getFeeAmount() constant returns (uint feeAmount) {
+        return (tickets.length - 1) * requiredBetAmount * feePt / 1000000;
     }
 
     function sealBet(uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
@@ -33,18 +57,20 @@ contract lupi is owned {
     }
 
     function sealBet(address _player, uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
-        require (_bet != 0);
+        require(_bet != 0);
         return keccak256(_player, _bet, _salt);
     }
 
     function placeBet(bytes32 _secretBet) payable returns (uint ticket) {
-        require (state == State.Betting);
+        require(state == State.Betting);
+        require(msg.value == requiredBetAmount);
+        require(ticketCountLimit < tickets.length -1);
         return tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
     }
 
     function bettingOver() {
-        require (state == State.Betting);
-        // TODO assert current time is after betting period
+        require(state == State.Betting );
+        require(ticketCountLimit == tickets.length -1 );
         state = State.Revealing;
     }
 
@@ -72,7 +98,7 @@ contract lupi is owned {
 
         uint[] ids = revealedTickets[_bet];
         if (ids.length == 0) {
-            revealedBets.push(_bet);
+            uniqueBets.push(_bet);
         }
         ids.push(_ticket);
 
@@ -82,12 +108,13 @@ contract lupi is owned {
     // IDEA make this iterative, so it scales indefinitely
     function declareWinner() {
         // TODO assert current time is after reveal period
-        require (state == State.Revealing);
+        // TODO: deduct fee
+        require(state == State.Revealing);
         state = State.Closed;
         uint lowestBet;
         uint lowestTicket;
-        for (uint i = 0; i < revealedBets.length; i++) {
-            uint bet = revealedBets[i];
+        for (uint i = 0; i < uniqueBets.length; i++) {
+            uint bet = uniqueBets[i];
             if (lowestBet == 0 || bet < lowestBet) {
                 uint[] ids = revealedTickets[bet];
                 if (ids.length == 1) {
