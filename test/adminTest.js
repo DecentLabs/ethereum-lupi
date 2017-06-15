@@ -1,13 +1,13 @@
 var lupi = artifacts.require("./Lupi.sol");
 
-contract("Lupi", function(accounts) {
+contract("Lupi", accounts => {
     var instance, ownerAddress;
     var gasUseLog = new Array();
     var requiredBetAmount = 1000000000000000000;
     var ticketCountLimit = 2;
     var feePt = 10000;
 
-    before(function(done) {
+    before(done => {
         lupi.new(requiredBetAmount, ticketCountLimit, feePt)
         .then( contractInstance => {
             instance = contractInstance;
@@ -40,7 +40,7 @@ contract("Lupi", function(accounts) {
         });
     });
 
-    it('should be possible to change owner', function(done) {
+    it('should be possible to change owner', done => {
         var newOwner = accounts[1];
 
         instance.setOwner(newOwner, { from: ownerAddress })
@@ -59,7 +59,7 @@ contract("Lupi", function(accounts) {
         });
     }); // should be possible to change owner
 
-    it('should only the current owner change owner', function(done) {
+    it('should only the current owner change owner', done => {
         var newOwner = accounts[2];
 
         instance.setOwner(newOwner, { from: newOwner })

@@ -1,7 +1,7 @@
 var lupi = artifacts.require("./Lupi.sol");
 var BigNumber = require('bignumber.js');
 
-contract("Lupi", function(accounts) {
+contract("Lupi", accounts => {
     /*  TODO:
         - move common test functions to shared .js
         - test refund() call by the ticket owner itself
@@ -21,29 +21,29 @@ contract("Lupi", function(accounts) {
     var defaultTxAccount = accounts[0]; // used for declareWinner, payerWinner and refund
     var ownerAddress = accounts[20]; // used for creating the contract
 
-    it('should be possible to play a round with 1 bet', function(done) {
+    it('should be possible to play a round with 1 bet', done => {
         // runBettingTest(requiredBetAmount, ticketCountLimit, feePt,
         //                      betsToPlace, expWinningTicket, expWinningNumber)
         runBettingTest("1b win", web3.toWei(1), 1, 10000, [2], 1, 2)
         .then( res => { done(); });
     }); // should be possible to play a round with 1 bet
 
-    it('should be possible to play a round with 4 bets and winner', function(done) {
+    it('should be possible to play a round with 4 bets and winner', done => {
         runBettingTest("4b win", web3.toWei(1), 4, 10000, [2,8,5,2], 3, 5)
         .then( res => { done(); });
     }); // should be possible to play a round with 4 bets and winner
 
-    it('should be possible to play a round with 4 bets and no winner', function(done) {
+    it('should be possible to play a round with 4 bets and no winner', done => {
         runBettingTest("4b no win", web3.toWei(1), 4, 10000, [2,5,2,5], 0, 0)
         .then( res => { done(); });
     }); // should be possible to play a round with 4 bets and no winner
 
-    it('should be possible to play a round with 10 bets and winner', function(done) {
+    it('should be possible to play a round with 10 bets and winner', done => {
         runBettingTest("10b win", web3.toWei(0.5), 10, 20000, [99,12,3,76,12,3,12,3,9,12], 9, 9)
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and winner
 
-    it('should be possible to play a round with 10 bets and no winner', function(done) {
+    it('should be possible to play a round with 10 bets and no winner', done => {
         runBettingTest("10b win", web3.toWei(0.5), 10, 20000, [2,3,6,5,9,3,9,5,6,2], 0, 0)
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and no winner
@@ -77,7 +77,7 @@ contract("Lupi", function(accounts) {
         var contractBalanceBefore, ownerBalanceBefore, playerBalanceBefore;
         var instance;
 
-        var _placeBetFn = function ( bet) {
+        var _placeBetFn = bet => {
          // called for each betsToPlace[] via  Promise.all(). Adds ticketId to bet struct
          return new Promise(resolve => resolve(
              instance.sealBet(bet.number, salt, {from: bet.playerAddress})
@@ -92,7 +92,7 @@ contract("Lupi", function(accounts) {
          )); // return new Promise
         }; _placeBetFn
 
-        var _revealBetFn = function ( bet) {
+        var _revealBetFn = bet => {
          // called for each betsToPlace[] via  Promise.all().
          return new Promise(resolve => resolve(
              instance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
@@ -105,7 +105,7 @@ contract("Lupi", function(accounts) {
          )); // return new Promise
         }; // _revealBetFn()
 
-        var _refundFn = function ( bet) {
+        var _refundFn = bet => {
          // called for each betsToPlace[] via  Promise.all().
          return new Promise(resolve => resolve(
              instance.refund(bet.ticketId, {from: defaultTxAccount})
