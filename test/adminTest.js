@@ -6,9 +6,10 @@ contract("Lupi admin tests", accounts => {
     var requiredBetAmount = 1000000000000000000;
     var ticketCountLimit = 2;
     var feePt = 10000;
+    var revealPeriodLength = 14400;
 
     before(done => {
-        lupi.new(requiredBetAmount, ticketCountLimit, feePt)
+        lupi.new(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt)
         .then( contractInstance => {
             instance = contractInstance;
             return instance.owner();
@@ -25,14 +26,16 @@ contract("Lupi admin tests", accounts => {
             assert.equal(res[1], requiredBetAmount, "requiredBetAmount should be set");
             assert.equal(res[2], feePt, "feePt should be set");
             assert.equal(res[3], ticketCountLimit, "ticketCountLimit should be set");
-            assert.equal(res[4], 0, "ticketCount should be 0");
-            assert.equal(res[5], 0, "reveleadCount should be 0");
-            assert.equal(res[6], 0, "feeAmount should be 0");
-            assert.equal(res[7], 0, "winnablePot should be 0");
-            assert.equal(res[8], 0, "winningTicket should be 0");
-            assert.equal(res[9], 0, "winnerAddress should be 0");
-            assert.equal(res[10], 0, "winningNumber should be 0");
-
+            assert.equal(res[4], revealPeriodLength, "revealPeriodLength should be set");
+            assert.equal(res[5], 0, "ticketCount should be 0");
+            assert.equal(res[6], 0, "reveleadCount should be 0");
+            assert.equal(res[7], 0, "feeAmount should be 0");
+            assert.equal(res[8], 0, "winnablePot should be 0");
+            assert.equal(res[9], 0, "winningTicket should be 0");
+            assert.equal(res[10], 0, "winnerAddress should be 0");
+            assert.equal(res[11], 0, "winningNumber should be set");
+            assert.equal(res[12], 0, "revealPeriodEnds should be 0");
+            return res;
         });
     });
 

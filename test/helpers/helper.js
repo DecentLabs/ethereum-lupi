@@ -13,13 +13,15 @@ function parseRoundInfo(result) {
     requiredBetAmount: result[1],
     feePt: result[2].toNumber(),
     ticketCountLimit: result[3].toNumber(),
-    ticketCount: result[4].toNumber(),
-    revealedCount: result[5].toNumber(),
-    feeAmount: result[6],
-    winnablePot: result[7],
-    winningTicket: result[8].toNumber(),
-    winningAddress: result[9],
-    winningNumber: result[10].toNumber()
+    revealPeriodLength: result[4].toNumber(),
+    ticketCount: result[5].toNumber(),
+    revealedCount: result[6].toNumber(),
+    feeAmount: result[7],
+    winnablePot: result[8],
+    winningTicket: result[9].toNumber(),
+    winningAddress: result[10],
+    winningNumber: result[11].toNumber(),
+    revealPeriodEnds: result[12].toNumber()
   }
 }
 

@@ -3,6 +3,7 @@
 //var helper = new require('./helpers/helper.js');
 
 contract("Lupi betting edge case tests", accounts => {
+    it("shouldn't be possible to reveal a bet when the reveal period is over even if there are unreavealed bets"); // we only tested the case when all bets revealed 
     it("shouldn't be able to placeBet with 0 number"), // assert VM exception
     it("shouldn't be able to placeBet with invalid betAmount"), // assert VM exception
     it("shouldn't be able to placeBet after ticketCountLimit reached" ), // (assert VM exception))

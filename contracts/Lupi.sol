@@ -7,6 +7,8 @@ contract Lupi is owned {
     uint public requiredBetAmount;
     uint public ticketCountLimit;
     uint public feePt; // feePt in parts per million , ie. 10,000 = 1%
+    uint public revealPeriodLength;
+    uint public revealPeriodEnds; // set when revealing started
 
     struct Ticket {
         address player;
@@ -30,30 +32,34 @@ contract Lupi is owned {
 
     // TODO: function getBets(address _player) constant returns bets[]
 
-    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _feePt ) {
+    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _revealPeriodLength, uint _feePt ) {
         require(_ticketCountLimit > 0);
+        require(_revealPeriodLength > 0);
         requiredBetAmount = _requiredBetAmount;
         ticketCountLimit = _ticketCountLimit;
+        revealPeriodLength = _revealPeriodLength;
         feePt = _feePt;
         // ticket zero is reserved
         tickets.length = 1;
     }
 
     function getRoundInfo() constant returns (
-            State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit,
+            State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit, uint _revealPeriodLength,
             uint _ticketCount, uint _revealedCount,
             uint _feeAmount,
             uint _winnablePotAmount,
             uint _winningTicket,
             address _winningAddress,
-            uint _winningNumber) {
-        return ( state, requiredBetAmount, feePt, ticketCountLimit,
+            uint _winningNumber,
+            uint _revealPeriodEnds) {
+        return ( state, requiredBetAmount, feePt, ticketCountLimit, revealPeriodLength,
             tickets.length -1, revealedCount,
             getFeeAmount(),
             getWinnablePotAmount(),
             winningTicket,
             tickets[winningTicket].player,
-            tickets[winningTicket].revealedBet);
+            tickets[winningTicket].revealedBet,
+            revealPeriodEnds);
     }
 
     function getFeeAmount() constant returns (uint feeAmount) {
@@ -87,6 +93,7 @@ contract Lupi is owned {
         require(state == State.Betting );
         require(ticketCountLimit == tickets.length -1 );
         state = State.Revealing;
+        revealPeriodEnds = now + revealPeriodLength;
     }
 
     function revealBet(uint _ticket, uint _bet, bytes32 _salt) {
@@ -124,6 +131,7 @@ contract Lupi is owned {
     function declareWinner() {
         // TODO assert current time is after reveal period
         require(state == State.Revealing);
+        require(tickets.length -1 == revealedCount || now > revealPeriodEnds );
         uint lowestUniqueBet;
         uint lowestTicket;
         for (uint i = 0; i < uniqueBets.length; i++) {

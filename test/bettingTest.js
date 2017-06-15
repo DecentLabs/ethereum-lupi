@@ -15,38 +15,39 @@ contract("Lupi betting tests", accounts => {
     it('should be possible to play a round with 1 bet', done => {
         // runBettingTest(requiredBetAmount, ticketCountLimit, feePt,
         //                      betsToPlace, expWinningIdx, expWinningNumber)
-        runBettingTest("1b win", web3.toWei(1), 1, 10000, [2], 1, 2)
+        runBettingTest("1b win", web3.toWei(1), 1, 10000, 600, [2], 1, 2)
         .then( res => { done(); });
     }); // should be possible to play a round with 1 bet
 
     it('should be possible to play a round with 4 bets and winner', done => {
-        runBettingTest("4b win", web3.toWei(1), 4, 10000, [2,8,5,2], 3, 5)
+        runBettingTest("4b win", web3.toWei(1), 4, 10000, 600, [2,8,5,2], 3, 5)
         .then( res => { done(); });
     }); // should be possible to play a round with 4 bets and winner
 
     it('should be possible to play a round with 4 bets and no winner', done => {
-        runBettingTest("4b no win", web3.toWei(1), 4, 10000, [2,5,2,5], 0, 0)
+        runBettingTest("4b no win", web3.toWei(1), 4, 10000, 600, [2,5,2,5], 0, 0)
         .then( res => { done(); });
     }); // should be possible to play a round with 4 bets and no winner
 
     it('should be possible to play a round with 10 bets and winner', done => {
-        runBettingTest("10b win", web3.toWei(0.5), 10, 20000, [99,12,3,76,12,3,12,3,9,12], 9, 9)
+        runBettingTest("10b win", web3.toWei(0.5), 10, 20000, 600, [99,12,3,76,12,3,12,3,9,12], 9, 9)
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and winner
 
     it('should be possible to play a round with 10 bets and no winner', done => {
-        runBettingTest("10b win", web3.toWei(0.5), 10, 20000, [2,3,6,5,9,3,9,5,6,2], 0, 0)
+        runBettingTest("10b win", web3.toWei(0.5), 10, 20000, 600, [2,3,6,5,9,3,9,5,6,2], 0, 0)
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and no winner
 
 
-    function runBettingTest(roundName, requiredBetAmount, ticketCountLimit, feePt,
+    function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, ticketCountLimit, feePt,
             betsToPlace, expWinningIdx, expWinningNumber) {
                 // for no winner round pass 0 for expWinningIdx & expWinningNumbert
         var ticketCountLimit = betsToPlace.length;
         var playerAddress = (expWinningNumber == 0) ? accounts[1] : accounts[expWinningIdx];
         var expWinningAddress = (expWinningNumber == 0) ? 0 : accounts[expWinningIdx];
         var contractBalanceBefore, ownerBalanceBefore, playerBalanceBefore;
+        var revealStartTime;
         var instance;
 
         var _placeBetFn = bet => {
@@ -89,7 +90,7 @@ contract("Lupi betting tests", accounts => {
          )); // return new Promise
         }; // _refundFn()
 
-        return lupi.new(requiredBetAmount, ticketCountLimit, feePt, {from: ownerAddress})
+        return lupi.new(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt, {from: ownerAddress})
         .then( contractInstance => {
             instance = contractInstance;
             contractBalanceBefore = web3.eth.getBalance(instance.address);
@@ -111,6 +112,7 @@ contract("Lupi betting tests", accounts => {
             assert.equal(roundInfo.state, "0", "Round state should be still Betting after bet");
             assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set");
             assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
+            assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0 before first reveal");
             var expFeeAmount = roundInfo.requiredBetAmount.times(roundInfo.feePt/1000000).times(roundInfo.ticketCount);
             var expWinnablePot = roundInfo.requiredBetAmount.times(roundInfo.ticketCount) - expFeeAmount;
             assert.equal(roundInfo.feeAmount.toString(), expFeeAmount.toString(), "feeAmount should be set");
@@ -120,6 +122,7 @@ contract("Lupi betting tests", accounts => {
                 contractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
                 "contract should receive the requiredBetAmount");
 
+            revealStartTime = Math.floor(Date.now() / 1000);
             var revealBetActions = betsToPlace.map(_revealBetFn);
             var results = Promise.all( revealBetActions );
             return results;
@@ -131,6 +134,11 @@ contract("Lupi betting tests", accounts => {
             assert.equal(roundInfo.state, "1", "Round state should be Revealing after last bet revealed");
             assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
             assert.equal(roundInfo.revealedCount, betsToPlace.length, "revealedCount should be set after last bet revealed");
+            assert.equal(roundInfo.revealPeriodEnds, revealPeriodLength + revealStartTime, "revealPeriodEnds should be 0 before first reveal");
+
+            assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 1, "revealPeriod end should be at least as expected");
+            assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 1, "revealPeriod end should be at most as expected");
+
             assert.equal(roundInfo.winningTicket, 0 , "The winningTicket should be yet 0 after revealBets()");
             assert.equal(roundInfo.winningNumber, 0, "The winningNumber should be yet 0 after revealBets()");
             assert.equal(roundInfo.winningAddress, 0, "The winningAddress should be yet 0 after revealBets()");
