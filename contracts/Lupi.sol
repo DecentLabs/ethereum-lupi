@@ -15,7 +15,7 @@ contract Lupi is owned {
         uint revealedBet;
     }
 
-    enum State { Betting, Revealing, Closed }
+    enum State { Betting, Revealing, Won, Tied }
 
     State public state = State.Betting;
 
@@ -36,7 +36,7 @@ contract Lupi is owned {
         ticketCountLimit = _ticketCountLimit;
         feePt = _feePt;
         // ticket zero is reserved
-        tickets.push(Ticket(0, 0, 0, 0)); // TODO:  replace this for a more readable logic? eg. new state
+        tickets.length = 1;
     }
 
     function getRoundInfo() constant returns (
@@ -124,33 +124,35 @@ contract Lupi is owned {
     function declareWinner() {
         // TODO assert current time is after reveal period
         require(state == State.Revealing);
-        state = State.Closed;
-        uint lowestBet;
+        uint lowestUniqueBet;
         uint lowestTicket;
         for (uint i = 0; i < uniqueBets.length; i++) {
             uint bet = uniqueBets[i];
-            if (lowestBet == 0 || bet < lowestBet) {
+            if (lowestUniqueBet == 0 || bet < lowestUniqueBet) {
                 uint[] ids = revealedTickets[bet];
                 if (ids.length == 1) {
-                    lowestBet = bet;
+                    lowestUniqueBet = bet;
                     lowestTicket = ids[0];
                 }
             }
         }
-        winningTicket = lowestTicket;
+        if (lowestUniqueBet == 0) {
+            state = State.Tied;
+        } else {
+            state = State.Won;
+            winningTicket = lowestTicket;
+        }
         owner.transfer(this.getFeeAmount());
     }
 
     function payWinner() {
-        require(state == State.Closed);
-        require(winningTicket != 0);
+        require(state == State.Won);
         // all money goes to winner
         tickets[winningTicket].player.transfer(getWinnablePotAmount());
     }
 
     function refund(uint _ticket) {
-        require(state == State.Closed);
-        require(winningTicket == 0);
+        require(state == State.Tied);
         Ticket ticket = tickets[_ticket];
         uint value = ticket.deposit - requiredBetAmount * feePt / 1000000;
         ticket.deposit = 0;
