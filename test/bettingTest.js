@@ -80,7 +80,7 @@ contract("Lupi", function(accounts) {
         var _placeBetFn = function ( bet) {
          // called for each betsToPlace[] via  Promise.all(). Adds ticketId to bet struct
          return new Promise(resolve => resolve(
-             instance.sealBet(bet.playerAddress, bet.number, salt, {from: bet.playerAddress})
+             instance.sealBet(bet.number, salt, {from: bet.playerAddress})
              .then( sealRes => {
                  bet.encryptedBet = sealRes;
                  return instance.placeBet(sealRes, {from: bet.playerAddress, value: bet.amount})
@@ -95,8 +95,7 @@ contract("Lupi", function(accounts) {
         var _revealBetFn = function ( bet) {
          // called for each betsToPlace[] via  Promise.all().
          return new Promise(resolve => resolve(
-             // TODO: change this to call revealBet(uint _ticket, uint _bet, bytes32 _salt)
-             instance.revealBet(bet.playerAddress, bet.ticketId, bet.number, salt, {from: bet.playerAddress})
+             instance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
              .then( revealTx => {
                  // TODO: assert revelead number is correct. here or at least once somewhere.
                  logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "

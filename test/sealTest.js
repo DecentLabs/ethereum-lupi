@@ -30,46 +30,25 @@ contract("Lupi", function(accounts) {
             //console.log("a) ", res);
             assert.equal(res, expected, "FIXME, known issue: sealBelt(number, salt) result should be as expected");
         });
-        /* These don't work either each gets bet wiht a different result :-O
-        instance.sealBet(2, salt1, { from: 0x94011c67bc1e6448ed4b8682047358ca6cd09470 })
-        .then( res => {
-            console.log("b) ", res);
-        });
-
-        return instance.sealBet(2, salt1, { from: '"' + accounts[1].toString() + '"'})
-        .then( res => {
-            //console.log("a) ", res);
-            assert.equal(res, expected, "sealBelt(number, salt) result should be as expected");
-        });
-        */
     }); // should be possible to seal a bet for myself
 
     it('should be possible to seal a bet for someone else when passing account address as accounts[1]', function() {
         return Promise.all( [
-            instance.sealBet(accounts[1].toString(), 2, salt1)
+            instance.sealBetForAddress(accounts[1].toString(), 2, salt1)
             .then( res => {
                 // console.log("other a) ", res);
                 assert.equal(res, expected, "sealBelt(player, number, salt) result should be as expected");
                 return res;
             }),
 
-            instance.sealBet(accounts[1], 2, salt1, { from: accounts[2] })
+            instance.sealBetForAddress(accounts[1], 2, salt1, { from: accounts[2] })
             .then( res => {
                 //console.log("other b) ", res);
                 assert.equal(res, expected, "sealBelt(player, number, salt) result should be as expected when passing account address when calling with {from: }");
                 return res;
             }),
 
-            /* This throws an error :
-            instance.sealBet(0x94011c67bc1e6448ed4b8682047358ca6cd09470, 2, salt1, { from: accounts[2] })
-            .then( res => {
-                //console.log("other b) ", res);
-                assert.equal(res, expected, "sealBelt(player, number, salt) result should be as expected when passing account address as 0xfff...");
-                return res;
-            }),
-            */
-
-            instance.sealBet("0x94011c67bc1e6448ed4b8682047358ca6cd09470", 2, salt1, { from: accounts[2] })
+            instance.sealBetForAddress("0x94011c67bc1e6448ed4b8682047358ca6cd09470", 2, salt1, { from: accounts[2] })
             .then( res => {
                 //console.log("other b) ", res);
                 assert.equal(res, expected, 'sealBelt(player, number, salt) result should be as expected when passing account address as "0xfff..." ');

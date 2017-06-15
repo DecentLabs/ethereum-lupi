@@ -65,10 +65,10 @@ contract Lupi is owned {
     }
 
     function sealBet(uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
-        return sealBet(msg.sender, _bet, _salt);
+        return sealBetForAddress(msg.sender, _bet, _salt);
     }
 
-    function sealBet(address _player, uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
+    function sealBetForAddress(address _player, uint _bet, bytes32 _salt) constant returns (bytes32 sealedBet) {
         require(_bet != 0);
         return keccak256(_player, _bet, _salt);
     }
@@ -90,11 +90,11 @@ contract Lupi is owned {
     }
 
     function revealBet(uint _ticket, uint _bet, bytes32 _salt) {
-        revealBet(msg.sender, _ticket, _bet, _salt);
+        revealBetForAddress(msg.sender, _ticket, _bet, _salt);
     }
 
     // IDEA incentivize reveals with paying back a reserve
-    function revealBet(address _player, uint _ticket, uint _bet, bytes32 _salt) {
+    function revealBetForAddress(address _player, uint _ticket, uint _bet, bytes32 _salt) {
         if (state == State.Betting) {
             startRevealing();
         }
@@ -107,7 +107,7 @@ contract Lupi is owned {
             return;
         }
 
-        bytes32 sealed = sealBet(_player, _bet, _salt);
+        bytes32 sealed = sealBetForAddress(_player, _bet, _salt);
         if (ticket.secretBet != sealed) throw;
         ticket.revealedBet = _bet;
 
