@@ -23,7 +23,7 @@ contract("Lupi", accounts => {
 
     it('should be possible to play a round with 1 bet', done => {
         // runBettingTest(requiredBetAmount, ticketCountLimit, feePt,
-        //                      betsToPlace, expWinningTicket, expWinningNumber)
+        //                      betsToPlace, expWinningIdx, expWinningNumber)
         runBettingTest("1b win", web3.toWei(1), 1, 10000, [2], 1, 2)
         .then( res => { done(); });
     }); // should be possible to play a round with 1 bet
@@ -69,11 +69,11 @@ contract("Lupi", accounts => {
     }
 
     function runBettingTest(roundName, requiredBetAmount, ticketCountLimit, feePt,
-            betsToPlace, expWinningTicket, expWinningNumber) {
-                // for no winner round pass 0 for expWinningTicket & expWinningTicket
+            betsToPlace, expWinningIdx, expWinningNumber) {
+                // for no winner round pass 0 for expWinningIdx & expWinningNumbert
         var ticketCountLimit = betsToPlace.length;
-        var playerAddress = (expWinningNumber == 0) ? accounts[1] : accounts[expWinningTicket];
-        var expWinningAddress = (expWinningNumber == 0) ? 0 : accounts[expWinningTicket];
+        var playerAddress = (expWinningNumber == 0) ? accounts[1] : accounts[expWinningIdx];
+        var expWinningAddress = (expWinningNumber == 0) ? 0 : accounts[expWinningIdx];
         var contractBalanceBefore, ownerBalanceBefore, playerBalanceBefore;
         var instance;
 
@@ -173,7 +173,8 @@ contract("Lupi", accounts => {
         }).then ( roundInfoRes => {
             var roundInfo = parseRoundInfo(roundInfoRes);
             assert.equal(roundInfo.state, "2", "Round state should be Closed after declareWinner()");
-            assert.equal(roundInfo.winningTicket, expWinningTicket, "The winningTicket should be set after declareWinner()");
+            var expTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
+            assert.equal(roundInfo.winningTicket, expTicketId, "The winningTicket should be set after declareWinner()");
             assert.equal(roundInfo.winningNumber, expWinningNumber, "The winningNumber should be set after declareWinner()");
             assert.equal(roundInfo.winningAddress, expWinningAddress, "The winningAddress should be set after declareWinner()");
             var ownerBalance = web3.fromWei(web3.eth.getBalance(ownerAddress)).toString();
