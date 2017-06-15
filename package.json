@@ -5,13 +5,13 @@
   "scripts": {
     "lint": "eslint ./",
     "build": "webpack",
-    "dev": "webpack-dev-server",
+    "dev": "NODE_ENV=development webpack-dev-server --progress --colors --content-base build/  --watch --hot --inline --config  webpack.config.js",
     "testrpc:start": "./runtestrpc.sh",
     "testrpc:install": "npm install -g ethereumjs-testrpc",
     "truffle:install": "npm install -g truffle"
   },
-  "author": "Douglas von Kohorn",
-  "license": "MIT",
+  "author": "DECENT",
+  "license": "GPL-3",
   "devDependencies": {
     "babel-cli": "^6.22.2",
     "babel-core": "^6.22.1",
@@ -35,7 +35,12 @@
     "style-loader": "^0.13.1",
     "truffle-contract": "^1.1.6",
     "web3": "^0.18.2",
-    "webpack": "^2.2.1",
-    "webpack-dev-server": "^2.3.0"
+    "webpack": "^2.5.1",
+    "webpack-dev-server": "^2.4.5"
+  },
+  "dependencies": {
+    "moment": "^2.18.1",
+    "moment-countdown": "0.0.3",
+    "secure-random": "^1.1.1"
   }
 }
