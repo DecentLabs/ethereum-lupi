@@ -122,8 +122,8 @@ contract("Lupi betting tests", accounts => {
                 contractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
                 "contract should receive the requiredBetAmount");
 
-            revealStartTime = Math.floor(Date.now() / 1000);
             var revealBetActions = betsToPlace.map(_revealBetFn);
+            revealStartTime = Math.floor(Date.now() / 1000);
             var results = Promise.all( revealBetActions );
             return results;
         }).then( revealTxs => {
@@ -134,11 +134,8 @@ contract("Lupi betting tests", accounts => {
             assert.equal(roundInfo.state, "1", "Round state should be Revealing after last bet revealed");
             assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
             assert.equal(roundInfo.revealedCount, betsToPlace.length, "revealedCount should be set after last bet revealed");
-            assert.equal(roundInfo.revealPeriodEnds, revealPeriodLength + revealStartTime, "revealPeriodEnds should be 0 before first reveal");
-
-            assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 1, "revealPeriod end should be at least as expected");
-            assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 1, "revealPeriod end should be at most as expected");
-
+            assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected");
+            assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected");
             assert.equal(roundInfo.winningTicket, 0 , "The winningTicket should be yet 0 after revealBets()");
             assert.equal(roundInfo.winningNumber, 0, "The winningNumber should be yet 0 after revealBets()");
             assert.equal(roundInfo.winningAddress, 0, "The winningAddress should be yet 0 after revealBets()");

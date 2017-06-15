@@ -129,7 +129,7 @@ contract Lupi is owned {
 
     // IDEA make this iterative, so it scales indefinitely
     function declareWinner() {
-        // TODO assert current time is after reveal period
+        // TODO: add some extra threshold to the "now" to avoid miners cheating and closing earlier
         require(state == State.Revealing);
         require(tickets.length -1 == revealedCount || now > revealPeriodEnds );
         uint lowestUniqueBet;
