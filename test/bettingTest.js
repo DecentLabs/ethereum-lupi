@@ -144,7 +144,7 @@ contract("Lupi betting tests", accounts => {
             return instance.getRoundInfo();
         }).then ( roundInfoRes => {
             var roundInfo = helper.parseRoundInfo(roundInfoRes);
-            assert.equal(roundInfo.state, "2", "Round state should be Closed after declareWinner()");
+            assert.equal(roundInfo.state, expWinningNumber == 0 ? "3" : "2", "Round state should be Won or Tied after declareWinner()");
             var expTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
             assert.equal(roundInfo.winningTicket, expTicketId, "The winningTicket should be set after declareWinner()");
             assert.equal(roundInfo.winningNumber, expWinningNumber, "The winningNumber should be set after declareWinner()");
