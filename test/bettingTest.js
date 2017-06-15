@@ -1,21 +1,12 @@
 var lupi = artifacts.require("./Lupi.sol");
 var BigNumber = require('bignumber.js');
+var helper = new require('./helpers/helper.js');
 
-contract("Lupi", accounts => {
+contract("Lupi betting tests", accounts => {
     /*  TODO:
         - move common test functions to shared .js
-        - test refund() call by the ticket owner itself
-        - test edge cases  in other test.js, eg:
-            -  placeBet after ticketCountLimit reached (assert VM exception)
-            -  placeBet with invalid betAmount
-            - placeBet, revealBet for someone else
-            - startRevealing  before limit reached (assert VM exception)
-            - declareWinner before limit reached or before roundend (assert VM exception)
-            - refund when round not closed or when there is a winner (assert VM exception)
-            - payWinner when round not closed or when there is no winner (assert VM exception)
-            - invalid refund
-    */
-    var gasUseLog = new Array();
+        - test refund() call by the ticket owner itself    */
+
     var salt = "0xdb8780d713083a9addb6494cfc767d6ef4b1358315737e06bbb7fd84cc493d1c";
     // needed to avoid polluting owner & player account with tx costs
     var defaultTxAccount = accounts[0]; // used for declareWinner, payerWinner and refund
@@ -48,25 +39,6 @@ contract("Lupi", accounts => {
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and no winner
 
-    function logGasUse(roundName, tran, tx) {
-        gasUseLog.push(  [roundName, tran, tx.receipt.gasUsed ]);
-    } //  logGasUse ()
-
-    function parseRoundInfo(result) {
-      return {
-        state: result[0],
-        requiredBetAmount: result[1],
-        feePt: result[2].toNumber(),
-        ticketCountLimit: result[3].toNumber(),
-        ticketCount: result[4].toNumber(),
-        revealedCount: result[5].toNumber(),
-        feeAmount: result[6],
-        winnablePot: result[7],
-        winningTicket: result[8].toNumber(),
-        winningAddress: result[9],
-        winningNumber: result[10].toNumber()
-      }
-    }
 
     function runBettingTest(roundName, requiredBetAmount, ticketCountLimit, feePt,
             betsToPlace, expWinningIdx, expWinningNumber) {
@@ -86,7 +58,7 @@ contract("Lupi", accounts => {
                  return instance.placeBet(sealRes, {from: bet.playerAddress, value: bet.amount})
              }).then( tx => {
                  bet.ticketId = tx.logs[0].args.ticketId.toNumber() ;
-                 logGasUse(roundName, "placeBet() ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
+                 helper.logGasUse(roundName, "placeBet() ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
                  return tx;
              })
          )); // return new Promise
@@ -98,7 +70,7 @@ contract("Lupi", accounts => {
              instance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
              .then( revealTx => {
                  // TODO: assert revelead number is correct. here or at least once somewhere.
-                 logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "
+                 helper.logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "
                      + bet.idx + " | number: " + bet.number, revealTx);
                  return revealTx;
              })
@@ -110,7 +82,7 @@ contract("Lupi", accounts => {
          return new Promise(resolve => resolve(
              instance.refund(bet.ticketId, {from: defaultTxAccount})
              .then( refundTx => {
-                 logGasUse(roundName, "refund() ticketId: " + bet.ticketId + " | bet idx: "
+                 helper.logGasUse(roundName, "refund() ticketId: " + bet.ticketId + " | bet idx: "
                      + bet.idx + " | number: " + bet.number, refundTx);
                  return refundTx;
              })
@@ -135,7 +107,7 @@ contract("Lupi", accounts => {
         }).then( betsTxs => {
             return instance.getRoundInfo();
         }).then( roundInfoRes => {
-            var roundInfo = parseRoundInfo(roundInfoRes);
+            var roundInfo = helper.parseRoundInfo(roundInfoRes);
             assert.equal(roundInfo.state, "0", "Round state should be still Betting after bet");
             assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set");
             assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
@@ -154,7 +126,7 @@ contract("Lupi", accounts => {
         }).then( revealTxs => {
            return instance.getRoundInfo();
         }).then ( roundInfoRes => {
-            var roundInfo = parseRoundInfo(roundInfoRes);
+            var roundInfo = helper.parseRoundInfo(roundInfoRes);
 
             assert.equal(roundInfo.state, "1", "Round state should be Revealing after last bet revealed");
             assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
@@ -167,11 +139,11 @@ contract("Lupi", accounts => {
             contractBalanceBefore = web3.eth.getBalance(instance.address);
             return instance.declareWinner({ from: defaultTxAccount});
         }).then( tx => {
-            logGasUse(roundName, "declareWinner()", tx);
+            helper.logGasUse(roundName, "declareWinner()", tx);
 
             return instance.getRoundInfo();
         }).then ( roundInfoRes => {
-            var roundInfo = parseRoundInfo(roundInfoRes);
+            var roundInfo = helper.parseRoundInfo(roundInfoRes);
             assert.equal(roundInfo.state, "2", "Round state should be Closed after declareWinner()");
             var expTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
             assert.equal(roundInfo.winningTicket, expTicketId, "The winningTicket should be set after declareWinner()");
@@ -196,12 +168,12 @@ contract("Lupi", accounts => {
             } else {
                 return instance.payWinner({from: defaultTxAccount})
                 .then( tx => {
-                    logGasUse(roundName, "payWinner()", tx);
+                    helper.logGasUse(roundName, "payWinner()", tx);
                     return instance.getRoundInfo();
                 });
             }
         }).then( roundInfoRes => {
-            var roundInfo = parseRoundInfo(roundInfoRes);
+            var roundInfo = helper.parseRoundInfo(roundInfoRes);
             var ownerBalance = web3.fromWei(web3.eth.getBalance(ownerAddress)).toString();
             var contractBalance = web3.fromWei(web3.eth.getBalance(instance.address)).toString();
             var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddress)).toString();
@@ -215,20 +187,5 @@ contract("Lupi", accounts => {
             }
         }); // return lupi.new...
     } // runBettingTest()
-
-    after( function() {
-        // runs after all tests in this block
-        console.log("===================  GAS USAGE STATS bettingTest.js ===================");
-        console.log("testround, transaction,  gas used");
-        //console.log(gasUseLog);
-        var sum = 0;
-        for (var i =0; i < gasUseLog.length; i++) {
-            console.log('"' + gasUseLog[i][0] + '", "' + gasUseLog[i][1] + '", ' + gasUseLog[i][2]);
-            sum += gasUseLog[i][2];
-        }
-
-        console.log("=========== Total gas usage for bettingTest.js: " + sum);
-
-  }); // after()
 
 }); // contract("lupi")

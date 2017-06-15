@@ -47,11 +47,11 @@ npm run dev
 * Optional: An improved and customized [Ethereum explorer fork](https://github.com/szerintedmi/explorer)
 
 TODO:
- * When contract .sol changed then testrcp need to be restarted. Truffle migrate won't deploy the new version.
- * dockerize (Dockerfiles + docker-compose config)
+ * dockerize privatechain (Dockerfiles + docker-compose config)
 
 ## Testing
-`truffle test` (work in progress)
+`truffle test`  
+_make sure you are running testrpc with_ `npm run testrpc:start`
 
 ## Authors
 ![DECENT](http://www.decent.org/images/logo-voronoi_120x33.png)

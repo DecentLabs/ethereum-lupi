@@ -1,8 +1,8 @@
 var lupi = artifacts.require("./Lupi.sol");
+var helper = new require('./helpers/helper.js');
 
-contract("Lupi", accounts => {
+contract("Lupi admin tests", accounts => {
     var instance, ownerAddress;
-    var gasUseLog = new Array();
     var requiredBetAmount = 1000000000000000000;
     var ticketCountLimit = 2;
     var feePt = 10000;
@@ -17,10 +17,6 @@ contract("Lupi", accounts => {
             done();
         });
     }) // before()
-
-    function logGasUse(testname, tran, tx) {
-        gasUseLog.push(  [testname, tran, tx.receipt.gasUsed ]);
-    } //  logGasUse ()
 
     it('contract should be setup with initial parameters', function() {
         return instance.getRoundInfo()
@@ -45,7 +41,7 @@ contract("Lupi", accounts => {
 
         instance.setOwner(newOwner, { from: ownerAddress })
         .then( tx => {
-            logGasUse("Change Owner", "setOwner() by owner", tx);
+            helper.logGasUse("Change Owner", "setOwner() by owner", tx);
             assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
             assert.equal(tx.logs[0].args.old, ownerAddress, "old owner should be set in event");
             assert.equal(tx.logs[0].args.current, newOwner, "new owner should be set in event");
@@ -61,10 +57,9 @@ contract("Lupi", accounts => {
 
     it('should only the current owner change owner', done => {
         var newOwner = accounts[2];
-
         instance.setOwner(newOwner, { from: newOwner })
         .then( tx => {
-            logGasUse("Change Owner", "setOwner() by non owner", tx);
+            helper.logGasUse("Change Owner", "setOwner() by non owner", tx);
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.owner();
         }).then ( ownerRes => {
@@ -72,12 +67,5 @@ contract("Lupi", accounts => {
             done();
         });
     }); // should be possible to change owner
-
-    after( function() {
-      // runs after all tests in this block
-      console.log("=========== GAS USAGE STATS ===========");
-      console.log("transaction,  gas used");
-      console.log(gasUseLog);
-    });
 
 }); // contract("lupi")

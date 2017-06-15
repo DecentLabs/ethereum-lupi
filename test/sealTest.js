@@ -1,6 +1,6 @@
 var lupi = artifacts.require("./Lupi.sol");
 
-contract("Lupi", accounts => {
+contract("Lupi seal tests", accounts => {
     var instance, ownerAddress;
 
     before(done => {
