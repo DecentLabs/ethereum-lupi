@@ -1,5 +1,5 @@
 echo "launching testrpc with deterministic addresses and preset accounts with balances (for unit tests)"
-n use 8.1.0 $(npm config get prefix)/bin/testrpc \
+n use 8.1.0 $(npm config get prefix)/bin/testrpc --\
 -m "hello build tongue rack parade express shine salute glare rate spice stock" \
 --account="0x133be114715e5fe528a1b8adf36792160601a2d63ab59d1fd454275b31328791,20000000000000000000000" \
 --account="0xd252a0a6fc3c546606e3060a43143003a4b1f46a7bacf39376d89a6370d1ecdc,20000000000000000000000" \
