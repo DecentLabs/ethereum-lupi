@@ -27,7 +27,7 @@
     <div id="mainDiv" style="margin-top: 5%;">
         <h1>Million Number Game</h1><br>
         <span id="status"></span>
-        <div id="connectHelp">
+        <div id="connectHelpDiv" style="display:none">
             You need an <a href="https://www.ethereum.org/" target="_blank">Ethereum</a> capable browser to play the game. Eg:
             <ul>
                 <li><a href="https://metamask.io/" target="_blank">Metamask Chrome plugin</a> and select Ropsten testnet or</li>
@@ -35,9 +35,8 @@
             </ul>
             You will also need some test ether (the game is only on Ropsten test network yet).
             <br>You can mine test ether or just ask for some from us: lupi@decent.org
+        </div> <!-- connectHelpDiv -->
 
-        </div>
-        <br>
         <div id="guessDiv" style="display:none">
             <h2>Guess</h2>
             <br>Pick the smallest unique number that no one else picked
@@ -108,7 +107,8 @@
           <br>
           <hr>
       </div> <!-- tiedDiv -->
-      <a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug info >></a>
+      <br><span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+      <br><a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug info >></a>
       <div id="massageDiv" style="display:none">
           <h2>Debug massage</h2>
           <br>Your account: <span id="accountAddress"></span>
@@ -119,7 +119,6 @@
           <br>
            <br><span id="roundInfoDebug"></span>
       </div> <!-- massageDiv -->
-      <br><span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
   </div> <!-- mainDiv -->
 </body>
 </html>

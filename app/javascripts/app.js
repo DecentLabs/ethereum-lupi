@@ -25,14 +25,17 @@ window.App = {
     web3.eth.getAccounts(function(err, accs) {
       if (err != null) {
         self.setStatus("<font color='red'>There was an error fetching your Ethereum accounts.</red>");
-        
+        document.getElementById("connectHelpDiv").style.display = "block";
         return;
       }
 
       if (accs.length == 0) {
         self.setStatus("<font color='red'>Couldn't get any accounts! Make sure your Ethereum client is configured correctly.</red>");
+        document.getElementById("connectHelpDiv").style.display = "block";
         return;
       }
+
+
 
       accounts = accs;
       account = accounts[0];
