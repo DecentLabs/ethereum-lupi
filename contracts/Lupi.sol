@@ -150,18 +150,22 @@ contract Lupi is owned {
             state = State.Won;
             winningTicket = lowestTicket;
         }
-        owner.transfer(this.getFeeAmount());
+        owner.transfer(getFeeAmount());
     }
 
     function payWinner() {
         require(state == State.Won);
+        Ticket ticket = tickets[winningTicket];
+        require(ticket.deposit > 0);
+        ticket.deposit = 0;
         // all money goes to winner
-        tickets[winningTicket].player.transfer(getWinnablePotAmount());
+        ticket.player.transfer(getWinnablePotAmount());
     }
 
     function refund(uint _ticket) {
         require(state == State.Tied);
         Ticket ticket = tickets[_ticket];
+        require(ticket.deposit > 0);
         uint value = ticket.deposit - requiredBetAmount * feePt / 1000000;
         ticket.deposit = 0;
         ticket.player.transfer(value);
