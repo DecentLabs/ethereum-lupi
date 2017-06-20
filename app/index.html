@@ -1,42 +1,125 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Million Number Game</title>
-  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-  <script src="./app.js"></script>
+    <title>Million Number Game</title>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <script src="./app.js"></script>
+    <!-- FIXME: webpack doesn't deploy these -->
+    <link rel="apple-touch-icon" sizes="57x57" href="./apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="./apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="./apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="./apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="./apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="./apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="./apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="./android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="./favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="./ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
 </head>
-<body>
-    <h1>Million Number Game</h1><br>
-    <h2>Guess</h2>
-    <h3>Pick the smallest unique number that no one else picked</h3>
+<body style="margin-top: 0;">
+    <div id="mainDiv" style="margin-top: 5%;">
+        <h1>Million Number Game</h1><br>
+        <span id="status"></span>
+        <div id="connectHelp">
+            You need an <a href="https://www.ethereum.org/" target="_blank">Ethereum</a> capable browser to play the game. Eg:
+            <ul>
+                <li><a href="https://metamask.io/" target="_blank">Metamask Chrome plugin</a> and select Ropsten testnet or</li>
+                <li><a href="https://github.com/ethereum/mist/releases" target="_blank">Mist browser</a> and select Develop/Network/Testnet</li>
+            </ul>
+            You will also need some test ether (the game is only on Ropsten test network yet).
+            <br>You can mine test ether or just ask for some from us: lupi@decent.org
 
-  <br><label for="guess"></label><input type="text" id="guess" placeholder="enter a positive integer"></input>
-  <br><br><button id="send" onclick="App.placeBet()">Submit my guess</button>
-  <br>
-  <span id="status"></span>
-  <hr>
-  <h2>Reveal</h2>
-  <br><label for="ticketId">Ticket id:</label><input type="text" id="ticketId" placeholder="ticket id"></input>
-  <br><label for="salt">Secret key:</label><input type="text" id="salt" placeholder="0x0...."></input>
-  <br><label for="revealGuess">Bet you placed:</label><input type="text" id="revealGuess" placeholder="number you played"></input>
-  <br><br><button id="send" onclick="App.revealBet()">Reveal my guess</button>
-  <span id="revealStatus"></span>
-  <br>
-  <hr>
-  <h2>Massage</h2>
-  <br><br><button id="send" onclick="App.startRevealing()">Start revealing</button>
-  <br><br><button id="send" onclick="App.declareWinner()">Declare winner</button>
-  <br><br><button id="send" onclick="App.payWinner()">Pay winner</button>
-  <br><label for="refund">Refund if no winner:</label><input type="text" id="refund" placeholder="ticket Id"></input>
-  <br><br><button id="send" onclick="App.revealBet()">Refund ticket</button>
-  <br><br>
-  <span id="roundInfo"></span>
-  <br>
-  <span class="hint">Your balance: <span id="balance"></span> ether<br>
-     Account: <span id="account"></span>
-    </span>
+        </div>
+        <br>
+        <div id="guessDiv" style="display:none">
+            <h2>Guess</h2>
+            <br>Pick the smallest unique number that no one else picked
+            <br>Winnable amount: <span id="winnablePotAmount">?</span> ether
+            <br><span id="ticketCount"></span> guesses placed from <span id="ticketCountLimit1">?</span>
+            <br><br><label for="guess">Your guess: </label><input type="text" id="guess" placeholder="enter a positive integer"></input>
+            <br>Cost of ticket for one guess: <span id="requiredBetAmount">?</span> ether
+            <br><button id="send" onclick="App.placeBet()">Submit my guess</button>
+            <br>
+            <hr>
+      </div> <!-- guessDiv -->
 
-  <br>
-  <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+      <div id="revealStartDiv" style="display:none">
+          <h2>Guessing period over </h2>
+          <br>Maximum number of bets placed. Start the reveal period (anybody can initiate it).
+          <br>Reveal period will be <span id="revealPeriodLength">?</span>
+          <br><br><button id="send" onclick="App.startRevealing()">Start revealing</button>
+          <hr>
+      </div> <!-- revealStartDiv -->
+
+      <div id="revealOverDiv" style="display:none">
+          <h2>Reveal period over</h2>
+          <br>Reveal time is over or all bets revealed.
+          <br>Initiate winner declaration! (anybody can call it :) )
+          <br><br><button id="send" onclick="App.declareWinner()">Declare winner</button>
+          <br>
+          <hr>
+      </div> <!-- revealOverDiv -->
+
+      <div id="revealDiv" style="display:none">
+          <h2>Reveal your ticket</h2>
+          <br>Reveal period end earliest on <span id="revealPeriodEnds">?</span> (you can reveal even after that time until winner is declared )
+          <br><span id="revealedCount">?</span> tickets revealed from total of <span id="ticketCountLimit2">?</span>
+          <br><label for="ticketId">Ticket id:</label><input type="text" id="ticketId" placeholder="ticket id"></input>
+          <br><label for="salt">Secret key:</label><input type="text" id="salt" placeholder="0x0...."></input>
+          <br><label for="revealGuess">Bet you placed:</label><input type="text" id="revealGuess" placeholder="number you played"></input>
+          <br><br><button id="send" onclick="App.revealBet()">Reveal my guess</button>
+          <br>
+          <hr>
+      </div> <!-- revealDiv -->
+
+      <div id="wonDiv" style="display:none">
+          <h2>Someone won the game</h2>
+          <br>The winner is <span id="winningAddress"></span>
+          <br>with the number: <span id="winningNumber"></span>
+          <div id="payWinnerDiv" style="display:none">
+              <br>Pay out the prize to winner (anybody can initiate it :) )
+              <br><br><button id="send" onclick="App.payWinner()">Pay winner</button>
+              <br>
+          </div> <!-- payWinnerdiv -->
+          <div id="winnerAlreadyPayedDiv" style="display:none">
+              <br>The winner has been already payed
+          </div> <!-- winnerPayedDiv -->
+          <hr>
+      </div> <!-- wonDiv -->
+
+      <div id="tiedDiv" style="display:none">
+          <h2>Game is tied</h2>
+          <br>It's a tie: no unique guess was placed.
+          <br>All bets (less fees) can be refunded to players by request.
+          <div id="refundPlayerDiv" style="display:inline">
+              <br><label for="refundTicketId">Ticket id:</label><input type="number" id="refundTicketId" placeholder="ticket Id"></input>
+              <br><br><button id="send" onclick="App.refund()">Refund ticket</button>
+          </div>  <!-- refundPlayerDiv -->
+         <!-- TODO:  <div id="playerAlreadyRefundedDiv" style="display:none">
+              <br>All your tickets have been refunded already
+          </div> --> <!-- playerAlreadyRefundedDiv -->
+          <br>
+          <hr>
+      </div> <!-- tiedDiv -->
+      <a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug info >></a>
+      <div id="massageDiv" style="display:none">
+          <h2>Debug massage</h2>
+          <br>Your account: <span id="accountAddress"></span>
+          <br>Your a/c balance: <span id="accountBalance">?</span> ether
+          <br>Contract address: <span id="contractAddress">?</span>
+          <br>Contract balance: <span id="contractBalance">?</span>
+          </span>
+          <br>
+           <br><span id="roundInfoDebug"></span>
+      </div> <!-- massageDiv -->
+      <br><span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+  </div> <!-- mainDiv -->
 </body>
 </html>

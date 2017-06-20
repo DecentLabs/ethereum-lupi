@@ -1,5 +1,5 @@
 var lupi = artifacts.require("./lupi.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(lupi, 1000000000000000000, 30, 600, 10000);
+  deployer.deploy(lupi, 1000000000000000000, 3, 60, 10000);
 };
