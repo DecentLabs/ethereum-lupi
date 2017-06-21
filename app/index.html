@@ -26,20 +26,22 @@
 <body style="margin-top: 0;">
     <div id="mainDiv" style="margin-top: 5%;">
         <h1>Million Number Game</h1><br>
-        <span id="status"></span>
+        <span id="status"></span><br>
         <div id="connectHelpDiv" style="display:none">
-            You need an <a href="https://www.ethereum.org/" target="_blank">Ethereum</a> capable browser to play the game. Eg:
+            You need an <a href="https://www.ethereum.org/" target="_blank">Ethereum</a> capable browser to play the game.
+            <br>The game is only on Ropsten test network yet.
+            <br>
             <ul>
-                <li><a href="https://metamask.io/" target="_blank">Metamask Chrome plugin</a> and select Ropsten testnet or</li>
-                <li><a href="https://github.com/ethereum/mist/releases" target="_blank">Mist browser</a> and select Develop/Network/Testnet</li>
+                <li>Install <a href="https://metamask.io/" target="_blank">Metamask Chrome plugin</a> and select Ropsten testnet or</li>
+                <li>Install <a href="https://github.com/ethereum/mist/releases" target="_blank">Mist browser</a> and select Develop/Network/Testnet</li>
             </ul>
-            You will also need some test ether (the game is only on Ropsten test network yet).
+            You will also need some test ether.
             <br>You can mine test ether or just ask for some from us: lupi@decent.org
         </div> <!-- connectHelpDiv -->
 
         <div id="guessDiv" style="display:none">
             <h2>Guess</h2>
-            <br>Pick the smallest unique number that no one else picked
+            <br>Pick the smallest unique number that no one else picks
             <br>Winnable amount: <span id="winnablePotAmount">?</span> ether
             <br><span id="ticketCount"></span> guesses placed from <span id="ticketCountLimit1">?</span>
             <br><br><label for="guess">Your guess: </label><input type="text" id="guess" placeholder="enter a positive integer"></input>
@@ -59,7 +61,16 @@
 
       <div id="revealOverDiv" style="display:none">
           <h2>Reveal period over</h2>
-          <br>Reveal time is over or all bets revealed.
+          <br>Reveal time is over but <span id="unRevealedCount">?</span> bets are not revealed yet.
+          <br>Tickets still can be revealed but from now anybody can close the reveal period by initiating Winner declaration.
+          <br><br><button id="send" onclick="App.declareWinner()">Close reveal period and Declare winner</button>
+          <br>
+          <hr>
+      </div> <!-- revealOverDiv -->
+
+      <div id="revealOverAllRevealedDiv" style="display:none">
+          <h2>Reveal period over</h2>
+          <br>Reveal time is over and all bets revealed.
           <br>Initiate winner declaration! (anybody can call it :) )
           <br><br><button id="send" onclick="App.declareWinner()">Declare winner</button>
           <br>
@@ -111,13 +122,13 @@
       <br><a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug info >></a>
       <div id="massageDiv" style="display:none">
           <h2>Debug massage</h2>
-          <br>Your account: <span id="accountAddress"></span>
+          <br>Your account: <span id="accountAddress">?</span>
           <br>Your a/c balance: <span id="accountBalance">?</span> ether
-          <br>Contract address: <span id="contractAddress">?</span>
-          <br>Contract balance: <span id="contractBalance">?</span>
           <br>LupiManager address: <span id="lupiManagerAddress">?</span>
           <br>Games count: <span id="gamesCount">?</span>
           <br>Selected game idx: <span id="gameIdx">?</span>
+          <br>Game contract address: <span id="contractAddress">?</span>
+          <br>Game contract balance: <span id="contractBalance">?</span>
           </span>
           <br>
            <br><span id="roundInfoDebug"></span>

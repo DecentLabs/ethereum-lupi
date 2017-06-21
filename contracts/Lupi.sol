@@ -49,6 +49,7 @@ contract Lupi is owned {
             uint _ticketCount, uint _revealedCount,
             uint _feeAmount,
             uint _winnablePotAmount,
+            uint _currentPotAmount,
             uint _winningTicket,
             address _winningAddress,
             uint _winningNumber,
@@ -57,6 +58,7 @@ contract Lupi is owned {
             tickets.length -1, revealedCount,
             getFeeAmount(),
             getWinnablePotAmount(),
+            getCurrentPotAmount(),
             winningTicket,
             tickets[winningTicket].player,
             tickets[winningTicket].revealedBet,
@@ -67,7 +69,11 @@ contract Lupi is owned {
         return (tickets.length - 1) * requiredBetAmount * feePt / 1000000;
     }
 
-    function getWinnablePotAmount() constant returns (uint winnablePot) {
+    function getWinnablePotAmount() constant returns (uint winnablePotAmount) {
+        return ticketCountLimit * requiredBetAmount * (1000000 - feePt) / 1000000 ;
+    }
+
+    function getCurrentPotAmount() constant returns (uint currentPotAmount) {
         return (tickets.length -1) * requiredBetAmount - getFeeAmount() ;
     }
 

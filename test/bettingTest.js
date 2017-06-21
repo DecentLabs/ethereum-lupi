@@ -97,6 +97,13 @@ contract("Lupi betting tests", accounts => {
             ownerBalanceBefore = web3.eth.getBalance(ownerAddress);
             playerBalanceBefore = web3.eth.getBalance(playerAddress);
 
+            return instance.getRoundInfo();
+        }).then( roundInfoRes => {
+            var roundInfo = helper.parseRoundInfo(roundInfoRes);
+            var expFeeAmount = requiredBetAmount * feePt / 1000000 * ticketCountLimit;
+            var expWinnablePot = requiredBetAmount * ticketCountLimit - expFeeAmount;
+            assert.equal(roundInfo.winnablePotAmount.toString(), expWinnablePot.toString(), "new round winnablePotAmount should be set");
+
             // betsToPlace transformed int a struct array  with playerAddress, encryptedBet  etc.
             for (var i = 0; i < betsToPlace.length ; i++){
                 // playerAddress is ref to accounts[] (idx+1 to avoid pollutin owner ac with transaction fees)
@@ -114,9 +121,10 @@ contract("Lupi betting tests", accounts => {
             assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
             assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0 before first reveal");
             var expFeeAmount = roundInfo.requiredBetAmount.times(roundInfo.feePt/1000000).times(roundInfo.ticketCount);
-            var expWinnablePot = roundInfo.requiredBetAmount.times(roundInfo.ticketCount) - expFeeAmount;
+            var expCurrentPot = roundInfo.requiredBetAmount.times(roundInfo.ticketCount) - expFeeAmount;
             assert.equal(roundInfo.feeAmount.toString(), expFeeAmount.toString(), "feeAmount should be set");
-            assert.equal(roundInfo.winnablePot.toString(), expWinnablePot.toString(), "new round winnablePot should be set");
+            assert.equal(roundInfo.currentPotAmount.toString(), expCurrentPot.toString(), "new round currentPotAmount should be set");
+            assert.equal(roundInfo.winnablePotAmount.toString(), expCurrentPot.toString(), "new round winnablePotAmount should be set");
             var contractBalance = web3.eth.getBalance(instance.address);
             assert.equal(contractBalance.toString(),
                 contractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
@@ -183,12 +191,12 @@ contract("Lupi betting tests", accounts => {
             var contractBalance = web3.fromWei(web3.eth.getBalance(instance.address)).toString();
             var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddress)).toString();
             assert.equal(ownerBalance, web3.fromWei(ownerBalanceBefore).toString(), "the owner balance should be the same after payWinner()");
-            assert.equal(contractBalance, web3.fromWei(contractBalanceBefore.minus(roundInfo.winnablePot)).toString(), "the winnable pot should be deducted from contract balance after payWinner() or refund()");
+            assert.equal(contractBalance, web3.fromWei(contractBalanceBefore.minus(roundInfo.winnablePotAmount)).toString(), "the winnable pot should be deducted from contract balance after payWinner() or refund()");
             if(expWinningNumber == 0 ) {
                 assert.equal(playerBalance, web3.fromWei(playerBalanceBefore.add(roundInfo.requiredBetAmount).minus(requiredBetAmount * feePt / 1000000)).toString(),
                     "the requiredBetAmount less fee should be sent to player after refund()");
             } else {
-                assert.equal(playerBalance, web3.fromWei(playerBalanceBefore.add(roundInfo.winnablePot)).toString(), "the winnable pot should be sent to winner after payWinner()");
+                assert.equal(playerBalance, web3.fromWei(playerBalanceBefore.add(roundInfo.winnablePotAmount)).toString(), "the winnable pot should be sent to winner after payWinner()");
             }
         }); // return lupi.new...
     } // runBettingTest()

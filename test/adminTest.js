@@ -1,9 +1,10 @@
 var lupi = artifacts.require("./Lupi.sol");
 var helper = new require('./helpers/helper.js');
+var BigNumber = require('bignumber.js');
 
 contract("Lupi admin tests", accounts => {
     var instance, ownerAddress;
-    var requiredBetAmount = 1000000000000000000;
+    var requiredBetAmount = new BigNumber( 1000000000000000000);
     var ticketCountLimit = 2;
     var feePt = 10000;
     var revealPeriodLength = 14400;
@@ -19,23 +20,25 @@ contract("Lupi admin tests", accounts => {
         });
     }) // before()
 
-    it('contract should be setup with initial parameters', function() {
-        return instance.getRoundInfo()
+    it('contract should be setup with initial parameters', done => {
+         instance.getRoundInfo()
         .then( res => {
             assert.equal(res[0], 0, "state should be 'Betting' (0)");
-            assert.equal(res[1], requiredBetAmount, "requiredBetAmount should be set");
+            assert.equal(res[1].toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
             assert.equal(res[2], feePt, "feePt should be set");
             assert.equal(res[3], ticketCountLimit, "ticketCountLimit should be set");
             assert.equal(res[4], revealPeriodLength, "revealPeriodLength should be set");
             assert.equal(res[5], 0, "ticketCount should be 0");
             assert.equal(res[6], 0, "reveleadCount should be 0");
             assert.equal(res[7], 0, "feeAmount should be 0");
-            assert.equal(res[8], 0, "winnablePot should be 0");
-            assert.equal(res[9], 0, "winningTicket should be 0");
-            assert.equal(res[10], 0, "winnerAddress should be 0");
-            assert.equal(res[11], 0, "winningNumber should be set");
-            assert.equal(res[12], 0, "revealPeriodEnds should be 0");
-            return res;
+            var expWinnablePotAmount = requiredBetAmount.times(ticketCountLimit).times( 1 - feePt / 1000000);
+            assert.equal(res[8].toString(), expWinnablePotAmount.toString(), "winnablePotAmount should be set");
+            assert.equal(res[9], 0, "currentPotAmount should be 0");
+            assert.equal(res[10], 0, "winningTicket should be 0");
+            assert.equal(res[11], 0, "winnerAddress should be 0");
+            assert.equal(res[12], 0, "winningNumber should be set");
+            assert.equal(res[13], 0, "revealPeriodEnds should be 0");
+            done();
         });
     });
 

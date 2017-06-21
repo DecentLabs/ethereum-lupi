@@ -17,11 +17,12 @@ function parseRoundInfo(result) {
     ticketCount: result[5].toNumber(),
     revealedCount: result[6].toNumber(),
     feeAmount: result[7],
-    winnablePot: result[8],
-    winningTicket: result[9].toNumber(),
-    winningAddress: result[10],
-    winningNumber: result[11].toNumber(),
-    revealPeriodEnds: result[12].toNumber()
+    winnablePotAmount: result[8],
+    currentPotAmount: result[9],
+    winningTicket: result[10].toNumber(),
+    winningAddress: result[11],
+    winningNumber: result[12].toNumber(),
+    revealPeriodEnds: result[13].toNumber()
   }
 }
 

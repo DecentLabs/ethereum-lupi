@@ -26,15 +26,7 @@ window.App = {
 
     Promise.all([
         lupiManager.deployed().then(function(res) {
-            console.log("lupiManager.deployed()", res);
             lupiManagerInstance = res;
-            return lupiManagerInstance.getGamesCount();
-        }).then( res => {
-            gamesCount = res.toNumber();
-            gameIdx = gamesCount - 1;
-            return lupiManagerInstance.games(gameIdx);
-        }).then( res => {
-            gameInstance = Lupi.at(res);
         }),
 
         web3.eth.getAccounts(function(err, accs) {
@@ -55,6 +47,9 @@ window.App = {
         })
     ]).then( res => {
         self.refreshUI();
+    }).catch( error => {
+        console.log("failed to connect LupiManager or Lupi", error);
+        App.setStatus("<font color='red'>Can't find any game on Ethereum network. Are you on testnet?</font>");
     }); // promise.all
 
   },
@@ -79,28 +74,47 @@ window.App = {
 
   refreshUI: function() {
     var self = this;
+    document.getElementById("accountAddress").innerHTML = account;
+    document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
 
-    var instance;
-    Lupi.deployed().then(function(res) {
-      instance = res;
-      document.getElementById("contractAddress").innerHTML = gameInstance.address;
-      document.getElementById("accountAddress").innerHTML = account;
-      document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
-      document.getElementById("gameIdx").innerHTML = gameIdx;
-      document.getElementById("gamesCount").innerHTML = gamesCount;
-      return web3.eth.getBalance(account);
+    web3.eth.getBalance(account, function(error, res) {
+        if (error) {
+            self.setStatus("<font color='red'>Error getting account balance; see log.</font>");
+            console.error("refreshUI().getBalance(account) error", error);
+        } else {
+            document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();
+        }
+    }); // getBalance(account)
+
+    lupiManagerInstance.getGamesCount()
+    .then( res => {
+        gamesCount = res.toNumber();
+        gameIdx = gamesCount - 1;
+        return lupiManagerInstance.games(gameIdx);
     }).then( res => {
-        document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();
-        return web3.eth.getBalance(instance.address);
-    }).then( res => {
-        document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
-        return instance.getRoundInfo();
+        gameInstance = Lupi.at(res);
+
+        document.getElementById("contractAddress").innerHTML = gameInstance.address;
+        document.getElementById("gameIdx").innerHTML = gameIdx;
+        document.getElementById("gamesCount").innerHTML = gamesCount;
+
+        web3.eth.getBalance(gameInstance.address, function(error, res) {
+            if (error) {
+                self.setStatus("<font color='red'>Error getting contract balance; see log.</font>");
+                console.error("refreshUI().getBalance(gameInstance.address) error", error);
+            } else {
+                document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
+            }
+        }); // getBalance(gameInstance)
+
+        return gameInstance.getRoundInfo();
     }).then( roundRes => {
         var roundInfo = self.parseRoundInfo(roundRes);
         document.getElementById("winnablePotAmount").innerHTML = web3.fromWei(roundInfo.winnablePotAmount);
         document.getElementById("requiredBetAmount").innerHTML = web3.fromWei(roundInfo.requiredBetAmount);
         document.getElementById("ticketCount").innerHTML = roundInfo.ticketCount;
         document.getElementById("revealedCount").innerHTML = roundInfo.revealedCount;
+        document.getElementById("unRevealedCount").innerHTML = roundInfo.ticketCount - roundInfo.revealedCount;
         document.getElementById("ticketCountLimit1").innerHTML = roundInfo.ticketCountLimit;
         document.getElementById("ticketCountLimit2").innerHTML = roundInfo.ticketCountLimit;
         document.getElementById("revealPeriodLength").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
@@ -113,25 +127,28 @@ window.App = {
         var revealStartDiv = document.getElementById("revealStartDiv");
         var revealDiv = document.getElementById("revealDiv");
         var revealOverDiv = document.getElementById("revealOverDiv");
+        var revealOverAllRevealedDiv = document.getElementById("revealOverAllRevealedDiv");
         var wonDiv = document.getElementById("wonDiv");
         var tiedDiv = document.getElementById("tiedDiv");
 
         var guessingOpen = roundInfo.state == 0 && roundInfo.ticketCount < roundInfo.ticketCountLimit ;
         var revealStart = roundInfo.state == 0 && roundInfo.ticketCount == roundInfo.ticketCountLimit;
         var revealOpen = roundInfo.state == 1 && roundInfo.revealedCount < roundInfo.ticketCount;
-        var revealOver = roundInfo.state == 1 && (roundInfo.revealedCount == roundInfo.ticketCount ||
-               roundInfo.revealPeriodEnds <  Date.now() /1000 );
+        var revealOverNotAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount !== roundInfo.ticketCount &&
+               roundInfo.revealPeriodEnds <  Date.now() /1000 ;
+        var revealOverAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount == roundInfo.ticketCount;
         guessDiv.style.display =  guessingOpen ? "inline" : "none";
         revealStartDiv.style.display =  revealStart ? "inline" : "none";
         revealDiv.style.display = revealOpen ? "inline" : "none";
-        revealOverDiv.style.display = revealOver ? "inline" : "none";
+        revealOverDiv.style.display = revealOverNotAllRevealed ? "inline" : "none";
+        revealOverAllRevealedDiv.style.display = revealOverAllRevealed ? "inline" : "none";
         wonDiv.style.display = roundInfo.state == 2 ? "inline" : "none";
         tiedDiv.style.display =  roundInfo.state == 3 ? "inline" : "none";
 
         var winnerAlreadyPayedDiv = document.getElementById("winnerAlreadyPayedDiv");
         var payWinnerDiv = document.getElementById("payWinnerDiv");
         if (roundInfo.state == 2  ) {
-            instance.tickets(roundInfo.winningTicket)
+            gameInstance.tickets(roundInfo.winningTicket)
             .then( res => {
                 var deposit = res[1].toNumber();
                 winnerAlreadyPayedDiv.style.display = deposit == 0 ? "inline" : "none";
@@ -160,19 +177,19 @@ window.App = {
     Lupi.deployed().then(function(res) {
         instance =res;
 
-        return instance.getRoundInfo();
+        return gameInstance.getRoundInfo();
     }).then( roundRes => {
         roundInfo = self.parseRoundInfo(roundRes);
         salt = "0x" + self.toHexString( secureRandom(32, {type: 'Array'}));
-        return instance.sealBetForAddress(account.toString(), guess, salt);
+        return gameInstance.sealBetForAddress(account.toString(), guess, salt);
     }).then( function(sealRes) {
         sealedBet = sealRes;
 
-        // TODO: var callData = instance.placeBet.getData;
-        //var estimatedGas =  web3.eth.estimateGas( {from: account, to: instance.address, data: callData});
+        // TODO: var callData = gameInstance.placeBet.getData;
+        //var estimatedGas =  web3.eth.estimateGas( {from: account, to: gameInstance.address, data: callData});
         // console.debug("placeBet estimateGas: ", estimateGas);
         var estimateGas = 100000;
-        return instance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: estimateGas});
+        return gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: estimateGas});
     }).then(function( tx) {
         ticketId = tx.logs[0].args.ticketId.toNumber() ;
         self.setStatus("<font color='green'>Successful guess.</font>"
@@ -197,9 +214,9 @@ window.App = {
         Lupi.deployed()
         .then( res => {
             instance = res;
-            return instance.startRevealing({from: account});
+            return gameInstance.startRevealing({from: account});
         }).then( tx => {
-            return instance.getRoundInfo();
+            return gameInstance.getRoundInfo();
         }).then( roundRes => {
             var roundInfo = self.parseRoundInfo(roundRes);
             this.setStatus("<font color='green'>Reveal period started.</green>");
@@ -223,7 +240,7 @@ window.App = {
             var guess = parseInt(document.getElementById("revealGuess").value);
             var salt = document.getElementById("salt").value;
             var estimateGas = 200000;
-            return instance.revealBet(ticket, guess, salt, {from: account, gas: estimateGas});
+            return gameInstance.revealBet(ticket, guess, salt, {from: account, gas: estimateGas});
         }).then( tx => {
             this.setStatus("<font color='green'>Bet revealed</font>" );
             self.refreshUI();
@@ -242,7 +259,7 @@ window.App = {
         Lupi.deployed()
         .then( res => {
             instance = res;
-            return instance.declareWinner( {from: account});
+            return gameInstance.declareWinner( {from: account});
         }).then( tx => {
             this.setStatus("<font color='green'>Winner declared</green>" );
             self.refreshUI();
@@ -261,7 +278,7 @@ window.App = {
         Lupi.deployed()
         .then( res => {
             instance = res;
-            return instance.payWinner( {from: account});
+            return gameInstance.payWinner( {from: account});
         }).then( tx => {
             this.setStatus("<font color='green'>Winner payed</green>" );
             self.refreshUI();
@@ -281,7 +298,7 @@ window.App = {
         .then( res => {
             instance = res;
             var ticketId =  parseInt(document.getElementById("refundTicketId").value);
-            return instance.refund( ticketId, {from: account});
+            return gameInstance.refund( ticketId, {from: account});
         }).then( tx => {
             this.setStatus("<font color='green'>Ticket refunded</font>" );
             self.refreshUI();
@@ -302,10 +319,11 @@ window.App = {
             revealedCount: result[6].toNumber(),
             feeAmount: result[7],
             winnablePotAmount: result[8],
-            winningTicket: result[9].toNumber(),
-            winningAddress: result[10],
-            winningNumber: result[11].toNumber(),
-            revealPeriodEnds: result[12].toNumber()
+            currentPotAmount: result[9],
+            winningTicket: result[10].toNumber(),
+            winningAddress: result[11],
+            winningNumber: result[12].toNumber(),
+            revealPeriodEnds: result[13].toNumber()
         }
     },
 
