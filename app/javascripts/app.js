@@ -3,45 +3,60 @@ import "../stylesheets/app.css";
 
 // Import libraries we need.
 import { default as Web3} from 'web3';
-import { default as contract } from 'truffle-contract'
+import { default as contract } from 'truffle-contract';
 
-// Import our contract artifacts and turn them into usable abstractions.
-import lupi_artifacts from '../../build/contracts/Lupi.json'
+import lupi_artifacts from '../../build/contracts/Lupi.json';
+import lupiManager_artifacts from '../../build/contracts/LupiManager.json';
 import { default as secureRandom} from "secure-random/lib/secure-random.js";
 var moment = require('moment');
 var countdown = require('countdown');
 
 var Lupi = contract(lupi_artifacts);
+var lupiManager = contract(lupiManager_artifacts);
 var accounts;
 var account;
+var gameInstance, lupiManagerInstance, gameIdx, gamesCount;
 
 window.App = {
   start: function() {
     var self = this;
 
+    lupiManager.setProvider(web3.currentProvider);
     Lupi.setProvider(web3.currentProvider);
 
-    // Get the initial account balance so it can be displayed.
-    web3.eth.getAccounts(function(err, accs) {
-      if (err != null) {
-        self.setStatus("<font color='red'>There was an error fetching your Ethereum accounts.</red>");
-        document.getElementById("connectHelpDiv").style.display = "block";
-        return;
-      }
+    Promise.all([
+        lupiManager.deployed().then(function(res) {
+            console.log("lupiManager.deployed()", res);
+            lupiManagerInstance = res;
+            return lupiManagerInstance.getGamesCount();
+        }).then( res => {
+            gamesCount = res.toNumber();
+            gameIdx = gamesCount - 1;
+            return lupiManagerInstance.games(gameIdx);
+        }).then( res => {
+            gameInstance = Lupi.at(res);
+        }),
 
-      if (accs.length == 0) {
-        self.setStatus("<font color='red'>Couldn't get any accounts! Make sure your Ethereum client is configured correctly.</red>");
-        document.getElementById("connectHelpDiv").style.display = "block";
-        return;
-      }
+        web3.eth.getAccounts(function(err, accs) {
+            if (err != null) {
+            self.setStatus("<font color='red'>There was an error fetching your Ethereum accounts.</red>");
+            document.getElementById("connectHelpDiv").style.display = "block";
+            return;
+            }
 
+            if (accs.length == 0) {
+            self.setStatus("<font color='red'>Couldn't get any accounts! Make sure your Ethereum client is configured correctly.</red>");
+            document.getElementById("connectHelpDiv").style.display = "block";
+            return;
+            }
 
+            accounts = accs;
+            account = accounts[0];
+        })
+    ]).then( res => {
+        self.refreshUI();
+    }); // promise.all
 
-      accounts = accs;
-      account = accounts[0];
-
-      self.refreshUI();
-    });
   },
 
   setStatus: function(message) {
@@ -68,8 +83,11 @@ window.App = {
     var instance;
     Lupi.deployed().then(function(res) {
       instance = res;
-      document.getElementById("contractAddress").innerHTML = instance.address;
+      document.getElementById("contractAddress").innerHTML = gameInstance.address;
       document.getElementById("accountAddress").innerHTML = account;
+      document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
+      document.getElementById("gameIdx").innerHTML = gameIdx;
+      document.getElementById("gamesCount").innerHTML = gamesCount;
       return web3.eth.getBalance(account);
     }).then( res => {
         document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();

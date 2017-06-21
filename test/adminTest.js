@@ -52,8 +52,6 @@ contract("Lupi admin tests", accounts => {
         }).then ( ownerRes => {
             assert.equal(ownerRes, newOwner, "owner() should return the new owner");
             ownerAddress = newOwner;
-            return instance.getRoundInfo()
-        }).then( res => {
             done();
         });
     }); // should be possible to change owner
