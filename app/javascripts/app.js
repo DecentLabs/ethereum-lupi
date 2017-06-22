@@ -13,8 +13,7 @@ var countdown = require('countdown');
 
 var Lupi = contract(lupi_artifacts);
 var lupiManager = contract(lupiManager_artifacts);
-var accounts;
-var account;
+var accounts, account;
 var gameInstance, lupiManagerInstance, gameIdx, gamesCount;
 
 window.App = {
@@ -24,34 +23,34 @@ window.App = {
     lupiManager.setProvider(web3.currentProvider);
     Lupi.setProvider(web3.currentProvider);
 
-    Promise.all([
-        lupiManager.deployed().then(function(res) {
-            lupiManagerInstance = res;
-        }),
-
-        web3.eth.getAccounts(function(err, accs) {
-            if (err != null) {
+    web3.eth.getAccounts(function(err, accs) {
+        if (err != null) {
             self.setStatus("<font color='red'>There was an error fetching your Ethereum accounts.</red>");
+            console.error("Error getting account list: ", err);
             document.getElementById("connectHelpDiv").style.display = "block";
             return;
-            }
+        }
 
-            if (accs.length == 0) {
+        if (accs.length == 0) {
             self.setStatus("<font color='red'>Couldn't get any accounts! Make sure your Ethereum client is configured correctly.</red>");
+            console.error("Received no account in account list");
             document.getElementById("connectHelpDiv").style.display = "block";
             return;
-            }
+        }
 
-            accounts = accs;
-            account = accounts[0];
-        })
-    ]).then( res => {
-        self.refreshUI();
-    }).catch( error => {
-        console.log("failed to connect LupiManager or Lupi", error);
-        App.setStatus("<font color='red'>Can't find any game on Ethereum network. Are you on testnet?</font>");
-    }); // promise.all
+        accounts = accs;
+        account = accounts[0];
 
+        lupiManager.deployed()
+        .then( res => {
+            lupiManagerInstance = res;
+            self.refreshUI();
+        }).catch( error => {
+            console.error("failed to connect LupiManager or Lupi", error);
+            App.setStatus("<font color='red'>Can't find any game on Ethereum network. Are you on testnet?</font>");
+            document.getElementById("connectHelpDiv").style.display = "block";
+        }); // lupiManager.deployed()
+    }); // getAccounts
   },
 
   setStatus: function(message) {
@@ -160,36 +159,29 @@ window.App = {
         }
 
     }).catch(function(e) {
-      console.log(e);
-      self.setStatus("<font color='red'>Error getting balance; see log.</font>");
+      console.error("refreshUI() error", e);
+      self.setStatus("<font color='red'>Error updating data; see log.</font>");
     });
   },
 
   placeBet: function() {
     var self = this;
-
+    this.setStatus("Initiating transaction... (please wait)");
     var guess = parseInt(document.getElementById("guess").value);
     var salt, ticketId, sealedBet;
-    var instance, roundInfo;
+    var roundInfo;
 
-    this.setStatus("Initiating transaction... (please wait)");
-
-    Lupi.deployed().then(function(res) {
-        instance =res;
-
-        return gameInstance.getRoundInfo();
-    }).then( roundRes => {
+    gameInstance.getRoundInfo()
+    .then( roundRes => {
         roundInfo = self.parseRoundInfo(roundRes);
         salt = "0x" + self.toHexString( secureRandom(32, {type: 'Array'}));
         return gameInstance.sealBetForAddress(account.toString(), guess, salt);
     }).then( function(sealRes) {
         sealedBet = sealRes;
-
-        // TODO: var callData = gameInstance.placeBet.getData;
-        //var estimatedGas =  web3.eth.estimateGas( {from: account, to: gameInstance.address, data: callData});
-        // console.debug("placeBet estimateGas: ", estimateGas);
-        var estimateGas = 100000;
-        return gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: estimateGas});
+        return web3.eth.estimateGas( {from: account, data: gameInstance.placeBet.getData});
+    }).then( res => {
+        var gasEstimate = res + 50000;
+        return gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: gasEstimate});
     }).then(function( tx) {
         ticketId = tx.logs[0].args.ticketId.toNumber() ;
         self.setStatus("<font color='green'>Successful guess.</font>"
@@ -200,111 +192,130 @@ window.App = {
                 + "<br> Account: " + account.toString());
         self.refreshUI();
     }).catch(function(e) {
-        console.log(e);
+        console.error("placeBet() error", e);
         self.setStatus("<font color='red'>Error sending your guess; see log.</red>");
     });
   },
 
     startRevealing: function() {
         var self = this;
-        var instance;
-
         this.setStatus("Initiating transaction... (please wait)");
 
-        Lupi.deployed()
-        .then( res => {
-            instance = res;
-            return gameInstance.startRevealing({from: account});
-        }).then( tx => {
+        var gasEstimate = web3.eth.estimateGas( {from: account, data: gameInstance.startRevealing.getData }) + 10000;
+        gameInstance.startRevealing({from: account, gas: gasEstimate})
+        .then( tx => {
             return gameInstance.getRoundInfo();
         }).then( roundRes => {
             var roundInfo = self.parseRoundInfo(roundRes);
             this.setStatus("<font color='green'>Reveal period started.</green>");
             self.refreshUI();
         }).catch(function(e) {
-            console.log(e);
+            console.error("startRevealing() error", e);
             self.setStatus("<font color='red'>Error while starting to reveal; see log.</font>");
         });
     },
 
     revealBet: function() {
         var self = this;
-        var instance;
-
         this.setStatus("Initiating transaction... (please wait)");
+        var ticket = parseInt(document.getElementById("ticketId").value);
+        var guess = parseInt(document.getElementById("revealGuess").value);
+        var salt = document.getElementById("salt").value;
 
-        Lupi.deployed()
-        .then( res => {
-            instance = res;
-            var ticket = parseInt(document.getElementById("ticketId").value);
-            var guess = parseInt(document.getElementById("revealGuess").value);
-            var salt = document.getElementById("salt").value;
-            var estimateGas = 200000;
-            return gameInstance.revealBet(ticket, guess, salt, {from: account, gas: estimateGas});
-        }).then( tx => {
+        // TODO: first reveal ca. 167000 then 11700 or 770000 ...
+        var gasEstimate =  web3.eth.estimateGas( {from: account, data: gameInstance.revealBet.getData }) + 120000;
+        gameInstance.revealBet(ticket, guess, salt, {from: account, gas: gasEstimate})
+        .then( tx => {
             this.setStatus("<font color='green'>Bet revealed</font>" );
             self.refreshUI();
         }).catch(function(e) {
-            console.log(e);
+            console.error("revealBet() error", e);
             self.setStatus("<font color='red'>Error while revealing your guess; see log.</font>");
         });
     },
 
     declareWinner: function() {
         var self = this;
-        var instance;
-
+        var roundInfo;
         this.setStatus("Initiating transaction... (please wait)");
 
-        Lupi.deployed()
+        gameInstance.getRoundInfo()
         .then( res => {
-            instance = res;
-            return gameInstance.declareWinner( {from: account});
+            roundInfo = App.parseRoundInfo(res);
+            return web3.eth.estimateGas( {from: account, data: gameInstance.declareWinner.getData } );
+        }).then( res => {
+            var gasEstimate =  res + 10000 + roundInfo.ticketCountLimit * 1000;
+
+            // FIXME: declareWinner() throws on testrpc when game created with createGame():
+            //     Error: VM Exception while processing transaction: invalid opcode
+            console.debug("gameInstance.address:", gameInstance.address);
+            console.debug("getRoundInfo():", JSON.stringify(roundInfo, null, 4));
+            var timeNow = Math.floor(Date.now() / 1000);
+            console.debug("timeNow:", timeNow, "revealPeriodLength:", roundInfo.revealPeriodLength,
+                "revealPeriodEnds:", roundInfo.revealPeriodEnds, "now-ends:", timeNow - roundInfo.revealPeriodEnds );
+            console.debug("from account:", account, "gasEstimate:", gasEstimate);
+            return gameInstance.declareWinner({from: account, gas: gasEstimate});
         }).then( tx => {
+            console.debug("declareWinner tx", tx);
             this.setStatus("<font color='green'>Winner declared</green>" );
             self.refreshUI();
         }).catch(function(e) {
-            console.log(e);
+            console.error("declareWinner() error", e);
             self.setStatus("<font color='red'>Error while declaring winner; see log.</red>");
         });
     },
 
     payWinner: function() {
         var self = this;
-        var instance;
-
         this.setStatus("Initiating transaction... (please wait)");
 
-        Lupi.deployed()
-        .then( res => {
-            instance = res;
-            return gameInstance.payWinner( {from: account});
-        }).then( tx => {
+        var gasEstimate = web3.eth.estimateGas( {from: account, data: gameInstance.payWinner.getData }) + 10000;
+        gameInstance.payWinner( {from: account, gas: gasEstimate})
+        .then( tx => {
             this.setStatus("<font color='green'>Winner payed</green>" );
             self.refreshUI();
         }).catch(function(e) {
-            console.log(e);
+            console.error("payWinner() error", e);
             self.setStatus("<font color='red'>Error while paying winner; see log.</font>");
         });
     },
 
     refund: function() {
         var self = this;
-        var instance;
-
         this.setStatus("Initiating transaction... (please wait)");
+        var ticketId =  parseInt(document.getElementById("refundTicketId").value);
 
-        Lupi.deployed()
-        .then( res => {
-            instance = res;
-            var ticketId =  parseInt(document.getElementById("refundTicketId").value);
-            return gameInstance.refund( ticketId, {from: account});
-        }).then( tx => {
+        var gasEstimate = web3.eth.estimateGas( {from: account, data: gameInstance.refund.getData }) + 10000;
+        gameInstance.refund( ticketId, {from: account, gas: gasEstimate})
+        .then( tx => {
             this.setStatus("<font color='green'>Ticket refunded</font>" );
             self.refreshUI();
         }).catch(function(e) {
-            console.log(e);
+            console.error("refund() error", e);
             self.setStatus("<font color='red'>Error while refunding; see log.</font>");
+        });
+    },
+
+    createGame: function() {
+        var self = this;
+
+        this.setStatus("Initiating transaction... (please wait)");
+        var requiredBetAmount = web3.toWei( parseInt(document.getElementById("requiredBetAmountInput").value), "ether" );
+        var ticketCountLimit = parseInt(document.getElementById("ticketCountLimitInput").value);
+        var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
+        var feePt = document.getElementById("feePtInput").value * 10000;
+
+        //var gasEstimate = web3.eth.estimateGas( {from: account, data: lupiManagerInstance.createGame.getData }) + 10000;
+        var gasEstimate = 1200000;
+        lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt,
+                 {from: account, gas: gasEstimate})
+        .then( tx => {
+            this.setStatus("<font color='green'>Game created. Idx: " + tx.logs[1].args.gameIdx
+            + " address: " + tx.logs[1].args.gameAddress + " </font>" );
+            self.refreshUI();
+        }).catch(function(e) {
+            console.error("createGame() error", e);
+            self.setStatus("<font color='red'>Error while creating game; see log.</font>");
         });
     },
 

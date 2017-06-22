@@ -1,4 +1,7 @@
 var lupiManager = artifacts.require("./LupiManager.sol");
+var lupi = artifacts.require("./Lupi.sol");
+var helper = new require('./helpers/helper.js');
+var BigNumber = require('bignumber.js');
 
 contract("LupiManager tests", accounts => {
 
@@ -11,7 +14,7 @@ contract("LupiManager tests", accounts => {
         }).then( tx => {
             gameIdx = tx.logs[0].args.gameIdx;
             assert.equal(tx.logs[0].event, "e_GameAdded", "e_GameAdded event should be emmitted");
-            assert.equal(tx.logs[0].args.gameIdx, 0, "gameIdx should be set in event");
+            assert.equal(tx.logs[0].args.gameIdx.toNumber(), 0, "gameIdx should be set in event");
             assert.equal(tx.logs[0].args.gameAddress, gameToAdd, "new game address should be set in event");
             return instance.games(gameIdx);
         }).then ( res => {
@@ -28,6 +31,57 @@ contract("LupiManager tests", accounts => {
         return lupiManager.new().then( res => {
             instance = res;
             return instance.addGame(gameToAdd, { from: accounts[1]});
+        }).then( tx => {
+            helper.logGasUse("LupiManager", "addGame()", tx);
+            assert.equal(tx.logs.length, 0, "no event should be emmitted");
+            return instance.getGamesCount();
+        }).then ( res => {
+            assert.equal(res, 0, "game count should be 0");
+        });
+    }); // only owner should be able to add a game
+
+    it('should be possible to create a new game', () => {
+        var instance, gameInstance, gameIdx, gameAddress;
+        var requiredBetAmount = new BigNumber( 1000000000000000000);
+        var ticketCountLimit = 2;
+        var feePt = 10000;
+        var revealPeriodLength = 14400;
+
+        return lupiManager.new().then( res => {
+            instance = res;
+            return instance.createGame(requiredBetAmount, ticketCountLimit,
+                 revealPeriodLength, feePt);
+        }).then( tx => {
+            helper.logGasUse("LupiManager", "createGame()", tx);
+            assert.equal(tx.logs[0].event, "e_GameCreated", "e_GameCreated event should be emmitted");
+            gameAddress = tx.logs[0].args.gameAddress;
+            gameIdx = tx.logs[1].args.gameIdx;
+            assert.equal(tx.logs[1].event, "e_GameAdded", "e_GameAdded event should be emmitted");
+            assert.equal(tx.logs[1].args.gameIdx, 0, "gameIdx should be set in event");
+            assert.equal(tx.logs[1].args.gameAddress, gameAddress, "new game address should be set in event");
+            return instance.games(gameIdx);
+        }).then ( res => {
+            assert.equal(res, gameAddress, "new game should be added");
+            return instance.getGamesCount();
+        }).then ( res => {
+            assert.equal(res, 1, "game count should be 1");
+            gameInstance = lupi.at(gameAddress);
+            return gameInstance.getRoundInfo();
+        }).then( res => {
+            var roundInfo = helper.parseRoundInfo(res);
+            assert.equal(roundInfo.state, 0, "new game state should be betting");
+            assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "new game requiredBetAmount should be set");
+            assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "new game ticketCountLimit should be set");
+            assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "new game revealPeriodLength should be set");
+            assert.equal(roundInfo.feePt, feePt, "new game feePt should be set");
+        });
+    }); // should be possible to create a new game
+
+    it('only owner should be able to create a new game', () => {
+        var instance;
+        return lupiManager.new().then( res => {
+            instance = res;
+            return instance.createGame(1,1,1,1, { from: accounts[1]});
         }).then( tx => {
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.getGamesCount();

@@ -1,6 +1,7 @@
 pragma solidity ^0.4.11;
 
 import "./Owned.sol";
+import "./Lupi.sol";
 
 contract LupiManager is owned {
 
@@ -15,6 +16,15 @@ contract LupiManager is owned {
         idx = games.push( _address)  - 1;
         e_GameAdded(idx, _address);
         return idx;
+    }
+
+    event e_GameCreated(address gameAddress);
+    function createGame(uint _requiredBetAmount, uint _ticketCountLimit,
+         uint _revealPeriodLength, uint _feePt) onlyOwner returns (uint gameIdx, address gameAddress) {
+        gameAddress = new Lupi(_requiredBetAmount, _ticketCountLimit, _revealPeriodLength, _feePt);
+        e_GameCreated(gameAddress);
+        gameIdx = addGame(gameAddress);
+        return (gameIdx, gameAddress);
     }
 
 }

@@ -25,7 +25,6 @@
 </head>
 <body style="margin-top: 0;">
     <div id="mainDiv" style="margin-top: 5%;">
-        <h1>Million Number Game</h1><br>
         <span id="status"></span><br>
         <div id="connectHelpDiv" style="display:none">
             You need an <a href="https://www.ethereum.org/" target="_blank">Ethereum</a> capable browser to play the game.
@@ -40,12 +39,12 @@
         </div> <!-- connectHelpDiv -->
 
         <div id="guessDiv" style="display:none">
-            <h2>Guess</h2>
+            <h2>Million Number Game</h2>
             <br>Pick the smallest unique number that no one else picks
             <br>Winnable amount: <span id="winnablePotAmount">?</span> ether
             <br><span id="ticketCount"></span> guesses placed from <span id="ticketCountLimit1">?</span>
-            <br><br><label for="guess">Your guess: </label><input type="text" id="guess" placeholder="enter a positive integer"></input>
-            <br>Cost of ticket for one guess: <span id="requiredBetAmount">?</span> ether
+            <br><br><label for="guess">Your guess: </label><input type="text" id="guess" style="width: auto;" size="25" placeholder="enter a positive integer"></input>
+            <br>Ticket cost for one guess: <span id="requiredBetAmount">?</span> ether
             <br><button id="send" onclick="App.placeBet()">Submit my guess</button>
             <br>
             <hr>
@@ -81,9 +80,9 @@
           <h2>Reveal your ticket</h2>
           <br>Reveal period end earliest on <span id="revealPeriodEnds">?</span> (you can reveal even after that time until winner is declared )
           <br><span id="revealedCount">?</span> tickets revealed from total of <span id="ticketCountLimit2">?</span>
-          <br><label for="ticketId">Ticket id:</label><input type="text" id="ticketId" placeholder="ticket id"></input>
-          <br><label for="salt">Secret key:</label><input type="text" id="salt" placeholder="0x0...."></input>
-          <br><label for="revealGuess">Bet you placed:</label><input type="text" id="revealGuess" placeholder="number you played"></input>
+          <br><label for="ticketId">Ticket id:</label><input type="text" id="ticketId" style="width: auto;" size="10" placeholder="ticket id"></input>
+          <br><label for="salt">Secret key:</label><input type="text" id="salt" style="width: auto;" size="66" maxlength="66" placeholder="0x0...."></input>
+          <br><label for="revealGuess">Bet you placed:</label><input type="text" id="revealGuess"s tyle="width: auto;" size="10" placeholder="number you played"></input>
           <br><br><button id="send" onclick="App.revealBet()">Reveal my guess</button>
           <br>
           <hr>
@@ -132,6 +131,16 @@
           </span>
           <br>
            <br><span id="roundInfoDebug"></span>
+           <div id="createGameDiv">
+               <h3>Create new game</h3>
+               <br>only by owner<br>
+               <br><label for="requiredBetAmountInput">Bet amount:</label><input type="text" id="requiredBetAmountInput" style="width: auto;" size="10" placeholder=""></input> ether
+               <br><label for="ticketCountLimitInput">Ticket limit:</label><input type="number" id="ticketCountLimitInput" style="width: auto;" size="10" placeholder=""></input>
+               <br><label for="revealPeriodLengthInput">Reveal period:</label><input type="number" id="revealPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
+               <br><label for="feePtInput">fee:</label><input type="text" id="feePtInput" placeholder="" style="width: auto;" size="3" maxlength="3"></input> %
+               <br><br><button id="send" onclick="App.createGame()">Create new game</button>
+               <hr>
+           </div> <!-- createGameDiv -->
       </div> <!-- massageDiv -->
   </div> <!-- mainDiv -->
 </body>

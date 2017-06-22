@@ -13,34 +13,34 @@ contract("Lupi betting tests", accounts => {
     var ownerAddress = accounts[20]; // used for creating the contract
 
     it('should be possible to play a round with 1 bet', done => {
-        // runBettingTest(requiredBetAmount, ticketCountLimit, feePt,
-        //                      betsToPlace, expWinningIdx, expWinningNumber)
-        runBettingTest("1b win", web3.toWei(1), 1, 10000, 600, [2], 1, 2)
+        // runBettingTest(roundName, requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt,
+        //         betsToPlace, expWinningIdx, expWinningNumber)
+        runBettingTest("1b win", web3.toWei(1), 1, 600, 10000, [2], 1, 2)
         .then( res => { done(); });
     }); // should be possible to play a round with 1 bet
 
     it('should be possible to play a round with 4 bets and winner', done => {
-        runBettingTest("4b win", web3.toWei(1), 4, 10000, 600, [2,8,5,2], 3, 5)
+        runBettingTest("4b win", web3.toWei(1), 4, 600, 20000, [2,8,5,2], 3, 5)
         .then( res => { done(); });
     }); // should be possible to play a round with 4 bets and winner
 
     it('should be possible to play a round with 4 bets and no winner', done => {
-        runBettingTest("4b no win", web3.toWei(1), 4, 10000, 600, [2,5,2,5], 0, 0)
+        runBettingTest("4b no win", web3.toWei(1), 4, 600, 20000, [2,5,2,5], 0, 0)
         .then( res => { done(); });
     }); // should be possible to play a round with 4 bets and no winner
 
     it('should be possible to play a round with 10 bets and winner', done => {
-        runBettingTest("10b win", web3.toWei(0.5), 10, 20000, 600, [99,12,3,76,12,3,12,3,9,12], 9, 9)
+        runBettingTest("10b win", web3.toWei(1), 10, 600, 10000, [99,12,3,76,12,3,12,3,9,12], 9, 9)
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and winner
 
     it('should be possible to play a round with 10 bets and no winner', done => {
-        runBettingTest("10b win", web3.toWei(0.5), 10, 20000, 600, [2,3,6,5,9,3,9,5,6,2], 0, 0)
+        runBettingTest("10b no win", web3.toWei(0.5), 10, 600, 20000, [2,3,6,5,9,3,9,5,6,2], 0, 0)
         .then( res => { done(); });
     }); // should be possible to play a round with 10 bets and no winner
 
 
-    function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, ticketCountLimit, feePt,
+    function runBettingTest(roundName, requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt,
             betsToPlace, expWinningIdx, expWinningNumber) {
                 // for no winner round pass 0 for expWinningIdx & expWinningNumbert
         var ticketCountLimit = betsToPlace.length;
