@@ -41,7 +41,7 @@ contract("LupiManager tests", accounts => {
     }); // only owner should be able to add a game
 
     it('should be possible to create a new game', () => {
-        var instance, gameInstance, gameIdx, gameAddress;
+        var instance, gameInstance, gameIdx, gameAddress, lupiManagerOwnerAddress;
         var requiredBetAmount = new BigNumber( 1000000000000000000);
         var ticketCountLimit = 2;
         var feePt = 10000;
@@ -49,16 +49,21 @@ contract("LupiManager tests", accounts => {
 
         return lupiManager.new().then( res => {
             instance = res;
+            return instance.owner();
+        }).then( res => {
+            lupiManagerOwnerAddress = res;
             return instance.createGame(requiredBetAmount, ticketCountLimit,
-                 revealPeriodLength, feePt);
+                 revealPeriodLength, feePt, { gas: 1200000});
         }).then( tx => {
             helper.logGasUse("LupiManager", "createGame()", tx);
-            assert.equal(tx.logs[0].event, "e_GameCreated", "e_GameCreated event should be emmitted");
-            gameAddress = tx.logs[0].args.gameAddress;
-            gameIdx = tx.logs[1].args.gameIdx;
-            assert.equal(tx.logs[1].event, "e_GameAdded", "e_GameAdded event should be emmitted");
-            assert.equal(tx.logs[1].args.gameIdx, 0, "gameIdx should be set in event");
+            assert.equal(tx.logs[1].event, "e_GameCreated", "e_GameCreated event should be emmitted");
+            gameAddress = tx.logs[1].args.gameAddress;
+            gameIdx = tx.logs[2].args.gameIdx;
+            assert.equal(tx.logs[2].event, "e_GameAdded", "e_GameAdded event should be emmitted");
+            assert.equal(tx.logs[2].args.gameIdx, 0, "gameIdx should be set in event");
             assert.equal(tx.logs[1].args.gameAddress, gameAddress, "new game address should be set in event");
+            assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
+            assert.equal(tx.logs[0].args.current, lupiManagerOwnerAddress, "new owner should be set in event");
             return instance.games(gameIdx);
         }).then ( res => {
             assert.equal(res, gameAddress, "new game should be added");
@@ -66,6 +71,9 @@ contract("LupiManager tests", accounts => {
         }).then ( res => {
             assert.equal(res, 1, "game count should be 1");
             gameInstance = lupi.at(gameAddress);
+            return gameInstance.owner();
+        }).then( res => {
+            assert.equal(res, lupiManagerOwnerAddress, "new game owner should be the same as lupiManager's owner");
             return gameInstance.getRoundInfo();
         }).then( res => {
             var roundInfo = helper.parseRoundInfo(res);

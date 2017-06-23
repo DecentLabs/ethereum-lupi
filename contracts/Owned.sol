@@ -13,7 +13,7 @@ contract owned {
         owner = msg.sender;
     }
 
-    event NewOwner(address indexed old, address indexed current);
+    event NewOwner(address old, address current);
     function setOwner(address _new) onlyOwner {
       NewOwner(owner, _new);
       owner = _new;
