@@ -86,11 +86,4 @@ contract("Lupi admin tests", accounts => {
         }); // expectThrow
     }); // ticketCount limit should be greater than 0
 
-    it('revealPeriodLength should be greater than 0', async function() {
-        return helper.expectThrow( lupi.new(web3.toWei(1), 1, 0, 10000, { account: accounts[0], gas: 3000000}))
-        .then( res => {
-            return;
-        }); // expectThrow
-    }); // revealPeriodLength should be greater than 0
-
 }); // contract("lupi")

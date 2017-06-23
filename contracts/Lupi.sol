@@ -34,7 +34,6 @@ contract Lupi is owned {
 
     function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _revealPeriodLength, uint _feePt ) {
         require(_ticketCountLimit > 0);
-        require(_revealPeriodLength > 0);
         require(_requiredBetAmount * _feePt / 1000000 < _requiredBetAmount);
         requiredBetAmount = _requiredBetAmount;
         ticketCountLimit = _ticketCountLimit;
@@ -138,7 +137,7 @@ contract Lupi is owned {
     function declareWinner() {
         // TODO: add some extra threshold to the "now" to avoid miners cheating and closing earlier
         require(state == State.Revealing);
-        require(tickets.length -1 == revealedCount || now > revealPeriodEnds );
+        require(tickets.length -1 == revealedCount || now >= revealPeriodEnds );
         uint lowestUniqueBet;
         uint lowestTicket;
         for (uint i = 0; i < uniqueBets.length; i++) {
