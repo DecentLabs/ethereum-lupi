@@ -2,56 +2,40 @@
 
 _a project by_ ![DECENT](http://www.decent.org/images/logo-voronoi_120x33.png)
 
-Play a game where each player sends one positive integer in a game round, with a fixed 'bet' amount. The player who sends a unique and smallest number wins the pot. This means if two people happen to send the same number, then the third one gets all the bets regardless the other two number were smaller.
+Play a game where each player sends one positive integer, with a fixed 'bet' amount. The player who sends a unique and smallest number wins the pot. This means if two people happen to send the same number, then the third one gets all the bets regardless the other two number were smaller.
 If there is no winner (ie. there is no unique number in the round) then all players get back their bet.  
 What number would you put if you were to play this game?
 
 NOTE: It's a work in progress project. Contribution, code review and suggestions are welcome!
 
-## Game Mechanics
-1. The round starts when the contract is deployed
-1. Players submit their guess: a positive integer number for the round. A pre-defined guess amount is included to have a stake in the game. The bet number is encrypted (sealed) with the player's private key (only known by the player).
-1. When the game reaches the predefined number of bets then the round stops accepting further bets.
-1. Players reveal (unseal) their bets with their private key.
-1. When the pre-defined reveal period is over then anyone can initiate the round close. The winner is the player who picked the lowest number that nobody else has picked.
+## Examples
+|       |Player A|Player B|Player C| Winner |
+|-------|-------:|-------:|-------:|:-------:|
+| game 1|      20|      10|      30|Player B|
+| game 2|      10|      10|      30|Player C|
+| game 3|      10|      10|      10|tied (all refunded)|
+| game 4|      10|      10|dind't reveal|tied (all refunded)|
+
+## Detailed Game Mechanics
+1. A game starts when a game contract is deployed by the organiser
+1. Players submit their guess: a positive integer number for the game.  
+   * A pre-defined guess amount is included to have a stake in the game.
+   * The bet number is encrypted (sealed) with a secret key.
+   * the secret key only known by the player so they have to save it and keep it sage until the reveal period.
+1. When the game reaches the predefined number of bets then the game stops accepting further bets.
+1. Anyone can start the reveal phase
+1. Players reveal (unseal) their tickets with their secret key.
+1. When the pre-defined length reveal period is over then anyone can initiate the game close (declare winner).  
+The winner is the player who picked the lowest number that nobody else has picked.
 1. At game close the organizer takes a pre-defined fee.
-1. After round close the winner can claim the pot (less organiser fee).
-1. If there is no winner (ie. there were no unique number) then everyone can claim back their bets (less organiser fee)
+1. After game close anyone can initiate a payout for the winner
+1. If there is no winner (ie. there were no unique number) then everyone can claim back their bets one by one (less organiser fee)
 
 ## Technical implementation
-<TODO>
+TODO
 
-## Dev environment
-### Prerequisites
-* [Ethereum CLI](https://www.ethereum.org/cli)
-* [nodejs](https://nodejs.org/en/download/)
-* [node version manager](https://github.com/tj/n): `npm install -g n`
-  * install 8.1.0 for testrpc:  `n 8.1.0` (TODO: decide on node version to be used)
-* [lupi repo](https://github.com/DecentLabs/ethereum-lupi):
-```
-git clone --recursive https://github.com/DecentLabs/ethereum-lupi.git
-cd ethereum-lupi
-npm install
-```
-* [testrpc](https://github.com/ethereumjs/testrpc) (global install): `npm run testrpc:install`
-* [truffle](http://truffleframework.com/docs/getting_started/installation) (global install): `npm run truffle:install`
+### [Development environment](docs/devenv.md)
 
-### Compile & deploy & run
-#### on testprc
-```
-npm run testrpc:start
-npm run truffle:migrate
-npm run dev
-```
-
-* Optional: An improved and customized [Ethereum explorer fork](https://github.com/szerintedmi/explorer)
-
-TODO:
- * dockerize privatechain (Dockerfiles + docker-compose config)
-
-## Testing
-`truffle test`  
-_make sure you are running testrpc with_ `npm run testrpc:start`
 
 ## Authors
 ![DECENT](http://www.decent.org/images/logo-voronoi_120x33.png)
