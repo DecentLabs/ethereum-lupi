@@ -341,7 +341,7 @@ window.App = {
         lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt,
                  {from: account, gas: gasEstimate})
         .then( tx => {
-            self.setStatus("<font color='green'>Game created. Idx: " + tx.logs[1].args.gameIdx
+            self.setStatus("<font color='green'>Game created. Idx: " + tx.logs[2].args.gameIdx
             + " address: " + tx.logs[1].args.gameAddress + " </font>" );
             self.refreshUI();
         }).catch(function(e) {

@@ -32,17 +32,16 @@ The winner is the player who picked the lowest number that nobody else has picke
 1. If there is no winner (ie. there were no unique number) then everyone can claim back their bets one by one (less organiser fee)
 
 ## Technical implementation
-TODO
+![Flow overview](docs/flowOverview.png)
 
 ### [Development environment](docs/devenv.md)
-
 
 ## Authors
 ![DECENT](http://www.decent.org/images/logo-voronoi_120x33.png)
 
 [DECENT Labs](http://www.decent.org) production
 
-###Concept, initial version
+### Concept, initial version
 * [phraktle](https://github.com/phraktle)
 * [szerintedmi](https://github.com/szerintedmi)
 

@@ -1,0 +1,27 @@
+@startuml
+title **Lupi** - High level game flow
+skinparam arrowColor #blue
+skinparam noteBackgroundColor #lightgrey
+actor Player
+control LupiContract
+actor Owner
+    Owner -> LupiContract : organiser creates a new game contract
+	Player <--> Player : encrypt (seal) guessed number locally with random secret key
+	Player -> LupiContract : place guess with encrypted number guess
+	== Other Players place guesses until max bets reached  ==
+	... when max number of bets placed  ...
+    Player -> LupiContract : Reveal (unseal) bet by providing secret key
+	== Players keep revealing their tickets ==
+    ... when reveal period is over (or all tickets revealed) ...
+    Player -> LupiContract : Initiate declare winner (by anyone)
+    LupiContract <--> LupiContract : winner calculated
+	LupiContract -> Owner : transaction fee paid
+	alt if there is a winner
+		Player -> LupiContract : initiate pay winner (by anyone)
+        LupiContract -> Player : pot (less fee) paid to winner
+	else if it's a tie
+		Player -> LupiContract : Initiate refund to player (by anyone)
+        LupiContract -> Player : Bet amount (less fee) refunded to player
+        == Players keep requesting refund for each ticket ==
+	end
+@enduml
