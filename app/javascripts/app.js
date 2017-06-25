@@ -188,34 +188,35 @@ window.App = {
                     ticketsListDiv.removeChild(ticketsListDiv.lastChild);
                 }
                 var tickets = JSON.parse( localStorage.getItem(gameInstance.address));
-                var revealedNode = document.createElement("div");
-                revealedNode.id = "revealedTicketsListDiv";
-                var revealNode = document.createElement("div");
-                revealNode.id = "revealTicketButtonsDiv";
-                var buttonNode;
-                for (var i=0; i < tickets.length; i++) {
-                    if (tickets[i].isRevealed) {
-                        //revealedNode.appendChild( document.createElement("br"));
-                        revealedNode.appendChild(  document.createTextNode("TicketId: " + tickets[i].ticketId
-                            + ", guess: " + tickets[i].guess + " | ") );
-                    } else {
-                        buttonNode = document.createElement("button");
-                        buttonNode.id = "revealButton" + i;
-                        buttonNode.value = "Reveal ticket " + tickets[i].ticketId;
-                        buttonNode.ticket = tickets[i];
-                        buttonNode.appendChild(document.createTextNode(buttonNode.value));
+                if ( tickets != null ) {
+                    var revealedNode = document.createElement("div");
+                    revealedNode.id = "revealedTicketsListDiv";
+                    var revealNode = document.createElement("div");
+                    revealNode.id = "revealTicketButtonsDiv";
+                    var buttonNode;
+                    for (var i=0; i < tickets.length; i++) {
+                        if (tickets[i].isRevealed) {
+                            //revealedNode.appendChild( document.createElement("br"));
+                            revealedNode.appendChild(  document.createTextNode("TicketId: " + tickets[i].ticketId
+                                + ", guess: " + tickets[i].guess + " | ") );
+                        } else {
+                            buttonNode = document.createElement("button");
+                            buttonNode.id = "revealButton" + i;
+                            buttonNode.value = "Reveal ticket " + tickets[i].ticketId;
+                            buttonNode.ticket = tickets[i];
+                            buttonNode.appendChild(document.createTextNode(buttonNode.value));
 
-                        buttonNode.addEventListener('click', function(){
-                            App.revealBet(gameInstance.address, this.ticket);
-                        });
-                        revealNode.appendChild(buttonNode);
-                        console.log(tickets[i].ticketId);
-                    }
-                } // for each ticket in store
-                ticketsListDiv.appendChild(revealNode);
-                ticketsListDiv.appendChild(document.createElement("br"));
-                ticketsListDiv.appendChild(document.createTextNode("Tickets you already revealed:"));
-                ticketsListDiv.appendChild(revealedNode);
+                            buttonNode.addEventListener('click', function(){
+                                App.revealBet(gameInstance.address, this.ticket);
+                            });
+                            revealNode.appendChild(buttonNode);
+                        }
+                    } // for each ticket in store
+                    ticketsListDiv.appendChild(revealNode);
+                    ticketsListDiv.appendChild(document.createElement("br"));
+                    ticketsListDiv.appendChild(document.createTextNode("Tickets you already revealed:"));
+                    ticketsListDiv.appendChild(revealedNode);
+                }
             }
             revealStartOnlyDiv.style.display = revealStart ? "inline" : "none";
 
