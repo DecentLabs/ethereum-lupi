@@ -247,6 +247,7 @@ window.App = {
 
     placeBet: function() {
         var self = this;
+        var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
         var guess = parseInt(document.getElementById("guess").value);
         var salt, ticketId, sealedBet;
@@ -263,9 +264,12 @@ window.App = {
         }).then( function(sealRes) {
             sealedBet = sealRes;
             web3.eth.estimateGas( {from: account, data: gameInstance.placeBet.getData}, function(error, res ) {
-                var gasEstimate = res + 50000;
+                gasEstimate = res + 50000;
                 gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: gasEstimate})
                 .then(function( tx) {
+                    if( tx.receipt.gasUsed == gasEstimate) {
+                        throw("placeBet error, all gas used: " + tx.receipt.gasUsed);
+                    }
                     ticketId = tx.logs[0].args.ticketId.toNumber() ;
                     var status = "<font color='green'>Successful guess.</font>"
                     try {
@@ -376,12 +380,16 @@ window.App = {
 
     startRevealing: function() {
         var self = this;
+        var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
 
         web3.eth.estimateGas( {from: account, data: gameInstance.startRevealing.getData }, function(error, res) {
-            var gasEstimate = res + 10000;
+            gasEstimate = res + 10000;
             gameInstance.startRevealing({from: account, gas: gasEstimate})
             .then( tx => {
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("startRevealing error, all gas used: " + tx.receipt.gasUsed);
+                }
                 return gameInstance.getRoundInfo();
             }).then( roundRes => {
                 var roundInfo = new App.RoundInfo(roundRes);
@@ -396,23 +404,27 @@ window.App = {
 
     manualRevealBet: function() {
         var self = this;
-        var accountInput = parseInt(document.getElementById("accountInput").value);
+        var accountInput = document.getElementById("accountInput").value;
         var ticketId = parseInt(document.getElementById("ticketId").value);
         var guess = parseInt(document.getElementById("revealGuess").value);
         var salt = document.getElementById("salt").value;
         var ticket = new App.Ticket(ticketId, guess, salt, accountInput);
+
         App.revealBet(gameInstance.address, ticket);
     },
 
     revealBet: function( gameAddress, ticket) {
         var self = this;
+        var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
-
         // TODO: first reveal ca. 167000 then 11700 or 770000 ...
         web3.eth.estimateGas( {from: account, data: gameInstance.revealBet.getData }, function( error, res) {
-            var gasEstimate = res + 140000;
+            gasEstimate = res + 140000;
             gameInstance.revealBetForAddress(ticket.account, ticket.ticketId, ticket.guess, ticket.salt, {from: account, gas: gasEstimate})
             .then( tx => {
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("revealBetForAddress error, all gas used: " + tx.receipt.gasUsed);
+                }
                 // Successful reveal, update localeStorage
                 ticket.isRevealed = true;
                 var ticketStore;
@@ -441,6 +453,7 @@ window.App = {
 
     declareWinner: function() {
         var self = this;
+        var gasEstimate;
         var roundInfo;
         self.setStatus("Initiating transaction... (please wait)");
 
@@ -448,9 +461,12 @@ window.App = {
         .then( res => {
             roundInfo = new App.RoundInfo(res);
             web3.eth.estimateGas( {from: account, data: gameInstance.declareWinner.getData }, function(error, res) {
-                var gasEstimate =  res + 10000 + roundInfo.ticketCountLimit * 1000;
+                gasEstimate =  res + 10000 + roundInfo.ticketCountLimit * 1000;
                 gameInstance.declareWinner({from: account, gas: gasEstimate})
                 .then( tx => {
+                    if( tx.receipt.gasUsed == gasEstimate) {
+                        throw("declareWinner error, all gas used: " + tx.receipt.gasUsed);
+                    }
                     self.setStatus("<font color='green'>Winner declared</green>" );
                     self.refreshUI();
                 }).catch(function(e) {
@@ -463,12 +479,16 @@ window.App = {
 
     payWinner: function() {
         var self = this;
+        var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
 
         web3.eth.estimateGas( {from: account, data: gameInstance.payWinner.getData }, function(error, res) {
-            var gasEstimate = res + 10000;
+            gasEstimate = res + 10000;
             gameInstance.payWinner( {from: account, gas: gasEstimate})
             .then( tx => {
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("payWinner error, all gas used: " + tx.receipt.gasUsed);
+                }
                 self.setStatus("<font color='green'>Winner payed</green>" );
                 self.refreshUI();
             }).catch(function(e) {
@@ -480,13 +500,17 @@ window.App = {
 
     refund: function() {
         var self = this;
+        var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
         var ticketId =  parseInt(document.getElementById("refundTicketId").value);
 
         web3.eth.estimateGas( {from: account, data: gameInstance.refund.getData }, function(error, res) {
-            var gasEstimate = res + 10000;
+            gasEstimate = res + 10000;
             gameInstance.refund( ticketId, {from: account, gas: gasEstimate})
             .then( tx => {
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("refund error, all gas used: " + tx.receipt.gasUsed);
+                }
                 self.setStatus("<font color='green'>Ticket refunded</font>" );
                 self.refreshUI();
             }).catch(function(e) {
@@ -498,7 +522,7 @@ window.App = {
 
     createGame: function() {
         var self = this;
-
+        var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
         var requiredBetAmount = web3.toWei( document.getElementById("requiredBetAmountInput").value, "ether" );
         var ticketCountLimit = parseInt(document.getElementById("ticketCountLimitInput").value);
@@ -506,10 +530,13 @@ window.App = {
         var feePt = document.getElementById("feePtInput").value * 10000;
 
         //web3.eth.estimateGas( {from: account, data: lupiManagerInstance.createGame.getData }) + 10000;
-        var gasEstimate = 1200000;
+        gasEstimate = 1200000;
         lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt,
                  {from: account, gas: gasEstimate})
         .then( tx => {
+            if( tx.receipt.gasUsed == gasEstimate) {
+                throw("createGame error, all gas used: " + tx.receipt.gasUsed);
+            }
             self.setStatus("<font color='green'>Game created. Idx: " + tx.logs[2].args.gameIdx
             + " address: " + tx.logs[1].args.gameAddress + " </font>" );
             self.refreshUI();
