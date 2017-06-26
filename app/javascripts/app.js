@@ -11,6 +11,7 @@ import { default as secureRandom} from "secure-random/lib/secure-random.js";
 var moment = require('moment');
 var countdown = require('countdown');
 var FileSaver = require('file-saver');
+var Parse = require('parse');
 
 var Lupi = contract(lupi_artifacts);
 var lupiManager = contract(lupiManager_artifacts);
@@ -63,6 +64,19 @@ window.App = {
     setStatus: function(message) {
         var status = document.getElementById("status");
         status.innerHTML = "<br>" + message;
+    },
+
+    toggleSubscribeAlert: function(message) {
+        var ele = document.getElementById("subscribeAlertDiv");
+        var text = document.getElementById("subscribeAlertText");
+        if(ele.style.display == "block") {
+        		ele.style.display = "none";
+        	text.innerHTML = "Get notified when you need to reveal >>";
+        	}
+        else {
+        	ele.style.display = "block";
+        	text.innerHTML = "Hide subscribe form <<";
+        }
     },
 
     toggleDebugInfo: function(message) {
@@ -271,36 +285,32 @@ window.App = {
                         throw("placeBet error, all gas used: " + tx.receipt.gasUsed);
                     }
                     ticketId = tx.logs[0].args.ticketId.toNumber() ;
-                    var status = "<font color='green'>Successful guess.</font>"
+                    var status = "<font color='green'>Successful guess.";
                     try {
-                        if (typeof(Storage) !== "undefined") {
-                            var ticket = new App.Ticket(ticketId, guess, salt, account, false);
-                            var ticketStore;
-                            ticketStore = JSON.parse( localStorage.getItem(gameInstance.address));
-                            if (ticketStore == null ) {
-                                ticketStore = new Array();
-                            }
-                            ticketStore.push(ticket);
-                            localStorage.setItem(gameInstance.address, JSON.stringify(ticketStore));
-
-                            status += "<br><strong>IMPORTANT: </strong>"
-                                    + "<a href='#self' onclick='App.exportTickets(); return false;'>"
-                                    + "Download your tickets " + "</a> for backup."
-                        } else {
-                            status +=
-                                    + "<br> Couldn't store your secret key locally. "
-                                    + "<br> <strong>IMPORTANT:</strong> Save this information to be able to reveal your bet:"
-                                    + "<br> Ticket id: " + ticketId
-                                    + "<br> Guess: " + guess
-                                    + "<br> Secret key: " +  salt
-                                    + "<br> Account: " + account.toString();
+                        var ticket = new App.Ticket(ticketId, guess, salt, account, false);
+                        var ticketStore;
+                        ticketStore = JSON.parse( localStorage.getItem(gameInstance.address));
+                        if (ticketStore == null ) {
+                            ticketStore = new Array();
                         }
+                        ticketStore.push(ticket);
+                        localStorage.ssetItem(gameInstance.address, JSON.stringify(ticketStore));
+
+                        status += "<br><strong>1. IMPORTANT: </strong>"
+                                + "<a href='#self' onclick='App.exportTickets(); return false;'>"
+                                + "Download your tickets " + "</a> for backup."
                     }
                     catch( error) {
-                        status += "<br>Your bet was placed but failed to save it locally. Make sure you backup your ticket manually.";
+                        status += "<br> Couldn't save your secret key locally. "
+                                + "<br> <strong>1. IMPORTANT:</strong> Save this information to be able to reveal your bet:"
+                                + "<br> Ticket id: " + ticketId
+                                + "<br> Guess: " + guess
+                                + "<br> Secret key: " +  salt
+                                + "<br> Account: " + account.toString();
                         console.error("Placebet() save to localstorage", error);
                         placeBetButton.disabled = false;
                     }
+                    status += "<br><strong>2. Subscribe for notifications </strong> below to know when you need to reveal your ticket</font>";
                     self.setStatus(status);
                     self.refreshUI();
                     placeBetButton.disabled = false;
@@ -326,6 +336,31 @@ window.App = {
             + ".json");
     }, // downloadTickets
 
+    subscribeAlert: function() {
+        var self = this;
+        self.setStatus("Initiating transaction... (please wait)");
+        var email =  document.getElementById("emailInput").value;
+        Parse.initialize("CHytB89n9X0rzg3agIPt5QyWb2yTKv3oSf1Z3PQ2", "QNEEQJ0tCpgMbyWrtwErZC2Ck31gPRV3mng9sHxl");
+        Parse.serverURL = 'https://parseapi.back4app.com';
+        var Subscription = Parse.Object.extend("Subscription");
+        var subscription = new Subscription();
+
+        subscription.set("email", email);
+        subscription.set("gameAddress", gameInstance.address);
+
+        subscription.save(null, {
+          success: function(subscription) {
+            self.setStatus("<font color='green'>Successful subscription for " + email + "</font>");
+          },
+          error: function(subscription, error) {
+            // Execute any logic that should take place if the save fails.
+            // error is a Parse.Error with an error code and message.
+            console.error('subscribeAlert() error:', error);
+            self.setStatus("<font color='red'>Can't save subscription. " + error.message + "</font> ");
+          }
+        });
+
+    },
 
     importTickets: function(filePath) {
         var self = this;
