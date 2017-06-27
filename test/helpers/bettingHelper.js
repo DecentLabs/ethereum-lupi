@@ -31,6 +31,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
     }
     var playerAddress = (expWinningNumber == 0) ? accounts[1] : accounts[expWinningIdx];
     var expWinningAddress = (expWinningNumber == 0) ? 0 : accounts[expWinningIdx];
+    var expWinningTicketId;
     var contractBalanceBefore, ownerBalanceBefore, playerBalanceBefore;
     var revealStartTime;
     var gameInstance;
@@ -44,6 +45,10 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
              return gameInstance.placeBet(sealRes, {from: bet.playerAddress, value: bet.amount})
          }).then( tx => {
              bet.ticketId = tx.logs[0].args.ticketId.toNumber() ;
+             assert.equal(tx.logs[0].event, "e_BetPlaced", "e_BetPlaced event should be emmitted");
+             assert.equal(tx.logs[0].args.player, bet.playerAddress, "playerAddress should be set in e_BetPlaced event");
+             //assert.equal(tx.logs[0].args.ticketId, ??, "ticketId should be set in e_BetPlaced event");
+
              helper.logGasUse(roundName, "placeBet() ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
              return tx;
          })
@@ -55,7 +60,19 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
      return new Promise(resolve => resolve(
          gameInstance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
          .then( revealTx => {
-             // TODO: assert revelead number is correct. here or at least once somewhere.
+             var revealedEventIdx = 0;
+             if( bet.ticketId == 1 ) {
+                 //console.log(revealTx.logs[0].revealPeriodEnds, revealPeriodLength + revealStartTime);
+                 assert.equal(revealTx.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after first reveal");
+                 assert(revealTx.logs[0].args.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
+                 assert(revealTx.logs[0].args.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
+                 revealedEventIdx = 1;
+             }
+             assert.equal(revealTx.logs[revealedEventIdx].event, "e_BetRevealed", "e_BetRevealed event should be emmitted");
+             assert.equal(revealTx.logs[revealedEventIdx].args.player, bet.playerAddress, "playerAddress should be set in e_BetRevealed event");
+             assert.equal(revealTx.logs[revealedEventIdx].args.ticketId, bet.ticketId, "ticketId should be set in e_BetRevealed event");
+             assert.equal(revealTx.logs[revealedEventIdx].args.bet, bet.number, "bet should be set in e_BetRevealed event");
+
              helper.logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "
                  + bet.idx + " | number: " + bet.number, revealTx);
              return revealTx;
@@ -122,18 +139,6 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
        return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
         var roundInfo = helper.parseRoundInfo(roundInfoRes);
-
-        if(toRevealCt == betsToPlace.length) {
-            assert.equal(roundInfo.state, "1", "Round state should be Revealing after last bet revealed");
-            return;
-        } else {
-            return gameInstance.startRevealing();
-        }
-    }).then( res => {
-        if(toRevealCt < betsToPlace.length) { helper.logGasUse(roundName, "startRevealing()", res); }
-        return gameInstance.getRoundInfo();
-     }).then ( roundInfoRes => {
-         var roundInfo = helper.parseRoundInfo(roundInfoRes);
         assert.equal(roundInfo.state, "1", "Round state should be Revealing after startRevealing()");
         assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
         assert.equal(roundInfo.revealedCount, toRevealCt, "revealedCount should be set after last bet revealed");
@@ -148,13 +153,18 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         return gameInstance.declareWinner({ from: defaultTxAccount});
     }).then( tx => {
         helper.logGasUse(roundName, "declareWinner()", tx);
+        expWinningTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
+        assert.equal(tx.logs[0].event, "e_WinnerDeclared", "e_WinnerDeclared event should be emmitted");
+        assert.equal(tx.logs[0].args.winningTicket , expWinningTicketId, "winningTicket should be set in e_WinnerDeclared event");
+        assert.equal(tx.logs[0].args.winningNumber, expWinningNumber, "winningNumber should be set in e_WinnerDeclared event");
+        assert.equal(tx.logs[0].args.winnerAddress, expWinningAddress, "winnerAddress should be set in e_WinnerDeclared event");
 
         return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
         var roundInfo = helper.parseRoundInfo(roundInfoRes);
         assert.equal(roundInfo.state, expWinningNumber == 0 ? "3" : "2", "Round state should be Won or Tied after declareWinner()");
-        var expTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
-        assert.equal(roundInfo.winningTicket, expTicketId, "The winningTicket should be set after declareWinner()");
+
+        assert.equal(roundInfo.winningTicket, expWinningTicketId, "The winningTicket should be set after declareWinner()");
         assert.equal(roundInfo.winningNumber, expWinningNumber, "The winningNumber should be set after declareWinner()");
         assert.equal(roundInfo.winningAddress, expWinningAddress, "The winningAddress should be set after declareWinner()");
         var ownerBalance = web3.fromWei(web3.eth.getBalance(ownerAddress)).toString();

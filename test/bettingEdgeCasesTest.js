@@ -60,8 +60,7 @@ contract("Lupi betting edge case tests", accounts => {
          });
     }); // shouldn't be able to refund when there is a winner
 
-    it("should be possible to reveal a bet when the reveal period is over but no startRevealing called yet");
-    it("shouldn't be possible to reveal a bet after startRevealing called ");
+    it("should be possible to call startRevealing when ticketCountLimit reached"); // all other tests relying on first reveal calling startRevealing
     it("shouldn't be able to placeBet with 0 number"); // assert VM exception
     it("shouldn't be able to placeBet with negative number");
     it("shouldn't be able to placeBet with invalid betAmount"); // assert VM exception

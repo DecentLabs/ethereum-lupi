@@ -85,21 +85,23 @@ contract Lupi is owned {
         return keccak256(_player, _bet, _salt);
     }
 
-    event e_BetPlaced (uint indexed ticketId);
+    event e_BetPlaced (address indexed player, uint indexed ticketId);
     function placeBet(bytes32 _secretBet) payable returns (uint ticket) {
         require(state == State.Betting);
         require(msg.value == requiredBetAmount);
         require( tickets.length < ticketCountLimit + 1 );
         ticket = tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
-        e_BetPlaced(ticket);
+        e_BetPlaced(msg.sender, ticket);
         return ticket;
     }
 
+    event e_RevealStarted(uint revealPeriodEnds);
     function startRevealing() {
         require(state == State.Betting );
         require(ticketCountLimit == tickets.length -1 );
         state = State.Revealing;
         revealPeriodEnds = now + revealPeriodLength;
+        e_RevealStarted(revealPeriodEnds);
     }
 
     function revealBet(uint _ticket, uint _bet, bytes32 _salt) {
@@ -107,6 +109,7 @@ contract Lupi is owned {
     }
 
     // IDEA incentivize reveals with paying back a reserve
+    event e_BetRevealed(address indexed player, uint indexed ticketId, uint bet);
     function revealBetForAddress(address _player, uint _ticket, uint _bet, bytes32 _salt) {
         if (state == State.Betting) {
             startRevealing();
@@ -131,9 +134,11 @@ contract Lupi is owned {
         ids.push(_ticket);
 
         revealedCount++;
+        e_BetRevealed(_player, _ticket, _bet);
     }
 
     // IDEA make this iterative, so it scales indefinitely
+    event e_WinnerDeclared(address winnerAddress, uint winningTicket, uint winningNumber);
     function declareWinner() {
         // TODO: add some extra threshold to the "now" to avoid miners cheating and closing earlier
         require(state == State.Revealing);
@@ -157,6 +162,7 @@ contract Lupi is owned {
             winningTicket = lowestTicket;
         }
         owner.transfer(getFeeAmount());
+        e_WinnerDeclared( tickets[winningTicket].player, winningTicket, tickets[winningTicket].revealedBet);
     }
 
     function payWinner() {
