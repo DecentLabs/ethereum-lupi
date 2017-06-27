@@ -294,7 +294,7 @@ window.App = {
                             ticketStore = new Array();
                         }
                         ticketStore.push(ticket);
-                        localStorage.ssetItem(gameInstance.address, JSON.stringify(ticketStore));
+                        localStorage.setItem(gameInstance.address, JSON.stringify(ticketStore));
 
                         status += "<br><strong>1. IMPORTANT: </strong>"
                                 + "<a href='#self' onclick='App.exportTickets(); return false;'>"

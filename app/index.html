@@ -89,14 +89,6 @@
             <hr>
         </div> <!-- revealDiv -->
 
-        <div id="revealStartOnlyDiv" style="display:none">
-            <h3>Start reveal period</h3>
-            Start the reveal period withouth a reveal (anybody can initiate it).
-            <br>Reveal period will be <span id="revealPeriodLength2">?</span>
-            <br><br><button id="send" onclick="App.startRevealing()">Start revealing</button>
-            <hr>
-        </div> <!-- revealStartDiv -->
-
         <div id="revealOverAllRevealedDiv" style="display:none">
             <h2>Reveal period over</h2>
             <br>All bets revealed.
@@ -171,6 +163,13 @@
             <br>Game contract balance: <span id="contractBalance">?</span>
             <br>
             <br><span id="roundInfoDebug"></span>
+            <div id="revealStartOnlyDiv" style="display:none">
+                <h3>Start reveal period</h3>
+                Start the reveal period withouth a reveal (anybody can initiate it).
+                <br>Reveal period will be <span id="revealPeriodLength2">?</span>
+                <br><br><button id="send" onclick="App.startRevealing()">Start revealing</button>
+                <hr>
+            </div> <!-- revealStartDiv -->
             <div id="createGameDiv">
                 <h3>Create new game</h3>
                 <br>only by owner<br>
