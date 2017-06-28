@@ -131,15 +131,23 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
             contractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
             "contract should receive the requiredBetAmount");
 
-        var revealBetActions = betsToPlace.slice(0, toRevealCt).map(_revealBetFn);
         revealStartTime = Math.floor(Date.now() / 1000);
-        var results = Promise.all( revealBetActions );
+        var results;
+        if ( toRevealCt == 0 ) {
+            results = gameInstance.startRevealing({from: defaultTxAccount});
+        } else {
+            var revealBetActions = betsToPlace.slice(0, toRevealCt).map(_revealBetFn);
+            results = Promise.all( revealBetActions );
+        }
         return results;
     }).then( revealTxs => {
+        if (toRevealCt == 0) {
+            helper.logGasUse(roundName, "startRevealing()", revealTxs);
+        }
        return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
         var roundInfo = helper.parseRoundInfo(roundInfoRes);
-        assert.equal(roundInfo.state, "1", "Round state should be Revealing after startRevealing()");
+        assert.equal(roundInfo.state, "1", "Round state should be Revealing after first reveal / startRevealing");
         assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
         assert.equal(roundInfo.revealedCount, toRevealCt, "revealedCount should be set after last bet revealed");
         assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected");

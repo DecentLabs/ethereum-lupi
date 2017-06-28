@@ -16,7 +16,7 @@ contract("Lupi betting edge case tests", accounts => {
     }); // should be possible to declareWinner without anybets revealed
 
     it("shouldn't be possible to refund a bet twice", done =>  {
-        bettingHelper.runBettingTest("edge: refund twice", web3.toWei(1), 0, 10000, [2,4,5], 0, 0, 0)
+        bettingHelper.runBettingTest("edge: refund twice", web3.toWei(1), 0, 10000, [2,4,5], 1, 2)
         .then( res => {
             return helper.expectThrow( res.refund(1));
         }).then( res => {
@@ -34,7 +34,7 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be possible to pay a winner twice
 
     it("shouldn't be able to refund with invalid ticketId request", done =>  {
-        bettingHelper.runBettingTest("edge: refund twice", web3.toWei(1), 0, 10000, [2,4,5], 0, 0, 0)
+        bettingHelper.runBettingTest("edge: refund invalid ticket", web3.toWei(1), 0, 10000, [2,4,5], 1, 2)
         .then( res => {
             return helper.expectThrow( res.refund(4));
         }).then( res => {
