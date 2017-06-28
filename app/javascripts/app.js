@@ -1,5 +1,8 @@
 // Import the page's CSS. Webpack will know what to do with it.
-import "../stylesheets/app.css";
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-material-design/dist/css/bootstrap-material-design.css';
+import 'bootstrap-material-design/dist/css/ripples.css';
+// import "../stylesheets/app.css";
 
 // Import libraries we need.
 import { default as Web3} from 'web3';
@@ -12,6 +15,9 @@ var moment = require('moment');
 var countdown = require('countdown');
 var FileSaver = require('file-saver');
 var Parse = require('parse');
+import $ from 'jquery';
+require('bootstrap-material-design/dist/js/material.js');
+require('bootstrap-material-design/dist/js/ripples.js');
 
 var Lupi = contract(lupi_artifacts);
 var lupiManager = contract(lupiManager_artifacts);
@@ -28,7 +34,7 @@ window.App = {
 
         web3.eth.getAccounts(function(err, accs) {
             if (err != null) {
-                self.setStatus("<font color='red'>There was an error fetching your Ethereum accounts.</red>");
+                self.setStatus('danger', "There was an error fetching your Ethereum accounts.");
                 console.error("Error getting account list: ", err);
                 document.getElementById("loadingDiv").style.display = "none";
                 document.getElementById("connectHelpDiv").style.display = "block";
@@ -36,7 +42,7 @@ window.App = {
             }
 
             if (accs.length == 0) {
-                self.setStatus("<font color='red'>Couldn't get any accounts! Make sure your Ethereum client is configured correctly.</red>");
+                self.setStatus('danger', "Couldn't get any accounts! Make sure your Ethereum client is configured correctly.");
                 console.error("Received no account in account list");
                 document.getElementById("loadingDiv").style.display = "none";
                 document.getElementById("connectHelpDiv").style.display = "block";
@@ -62,7 +68,7 @@ window.App = {
             }).catch( error => {
                 console.error("failed to connect LupiManager or Lupi", error);
                 document.getElementById("loadingDiv").style.display = "none";
-                App.setStatus("<font color='red'>Can't find any game on Ethereum network. Are you on testnet?</font>");
+                App.setStatus('danger', "Can't find any game on Ethereum network. Are you on testnet?");
                 document.getElementById("connectHelpDiv").style.display = "block";
             }); // lupiManager.deployed()
         }); // getAccounts
@@ -168,9 +174,9 @@ window.App = {
 
     },  // listenToLupiEvents
 
-    setStatus: function(message) {
-        var status = document.getElementById("status");
-        status.innerHTML = "<br>" + message;
+    setStatus: function(severity, message) {
+        var $status = $("#status");
+        $status.removeClass().addClass('alert alert-'+severity).html(message);
     },
 
     toggleSubscribeAlert: function(message) {
@@ -227,7 +233,7 @@ window.App = {
 
         web3.eth.getBalance(account, function(error, res) {
             if (error) {
-                self.setStatus("<font color='red'>Error getting account balance; see log.</font>");
+                self.setStatus("Error getting account balance; see log.");
                 console.error("refreshUI().getBalance(account) error", error);
             } else {
                 document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();
@@ -345,14 +351,14 @@ window.App = {
         }).catch(function(e) {
             document.getElementById("loadingDiv").style.display = "none";
             console.error("refreshUI() error", e);
-            self.setStatus("<font color='red'>Error updating data; see log.</font>");
+            self.setStatus('danger', "Error updating data; see log.");
         });
     },
 
     placeBet: function() {
         var self = this;
         var gasEstimate;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction... (please wait)");
         var guess = parseInt(document.getElementById("guess").value);
         var salt, ticketId, sealedBet;
         var roundInfo;
@@ -375,7 +381,9 @@ window.App = {
                         throw("placeBet error, all gas used: " + tx.receipt.gasUsed);
                     }
                     ticketId = tx.logs[0].args.ticketId.toNumber() ;
-                    var status = "<font color='green'>Successful guess.";
+                    var status = "Successful guess",
+                        severity = 'success';
+
                     try {
                         var ticket = new App.Ticket(ticketId, guess, salt, account, false);
                         var ticketStore;
@@ -386,12 +394,14 @@ window.App = {
                         ticketStore.push(ticket);
                         localStorage.setItem(gameInstance.address, JSON.stringify(ticketStore));
 
-                        status += "<br><strong>1. IMPORTANT: </strong>"
+                        status = "<br><strong>1. IMPORTANT: </strong>"
                                 + "<a href='#self' onclick='App.exportTickets(); return false;'>"
-                                + "Download your tickets " + "</a> for backup."
+                                + "Download your tickets " + "</a> for backup.";
+                        severity = 'info';
                     }
                     catch( error) {
-                        status += "<br> Couldn't save your secret key locally. "
+                        severity = 'alert';
+                        status = "<br> Couldn't save your secret key locally. "
                                 + "<br> <strong>1. IMPORTANT:</strong> Save this information to be able to reveal your bet:"
                                 + "<br> Ticket id: " + ticketId
                                 + "<br> Guess: " + guess
@@ -401,17 +411,18 @@ window.App = {
                         placeBetButton.disabled = false;
                     }
                     status += "<br><strong>2. Subscribe for notifications </strong> below to know when you need to reveal your ticket</font>";
-                    self.setStatus(status);
+                    self.setStatus(severity, status);
+                    self.refreshUI();
                     placeBetButton.disabled = false;
                 }).catch(function(e) {
                     console.error("placeBet() error", e);
-                    self.setStatus("<font color='red'>Error sending your guess; see log.</red>");
+                    self.setStatus('danger', "Error sending your guess; see log.");
                     placeBetButton.disabled = false;
                 }); // placeBet()
             }); // estimateGas()
         }).catch( e => {
             console.error("App.placeBet error", e);
-            self.setStatus("<font color='red'>Error sending your guess; see log.</red>");
+            self.setStatus('danger', "Error sending your guess; see log.");
             placeBetButton.disabled = false;
         }); // getRoundInfo()
 
@@ -428,7 +439,7 @@ window.App = {
 
     subscribeAlert: function() {
         var self = this;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction... (please wait)");
         var email =  document.getElementById("emailInput").value;
         Parse.initialize("CHytB89n9X0rzg3agIPt5QyWb2yTKv3oSf1Z3PQ2", "QNEEQJ0tCpgMbyWrtwErZC2Ck31gPRV3mng9sHxl");
         Parse.serverURL = 'https://parseapi.back4app.com';
@@ -440,13 +451,13 @@ window.App = {
 
         subscription.save(null, {
           success: function(subscription) {
-            self.setStatus("<font color='green'>Successful subscription for " + email + "</font>");
+            self.setStatus('success', "Successful subscription for " + email);
           },
           error: function(subscription, error) {
             // Execute any logic that should take place if the save fails.
             // error is a Parse.Error with an error code and message.
             console.error('subscribeAlert() error:', error);
-            self.setStatus("<font color='red'>Can't save subscription. " + error.message + "</font> ");
+            self.setStatus('danger', "Can't save subscription. " + error.message);
           }
         });
 
@@ -460,8 +471,8 @@ window.App = {
             reader = new FileReader();
         } else {
             alert('');
-            self.setStatus("<font color='red'>Can't restore tickets: the File APIs are not fully supported by your browser."
-                + "<br>Try again with an up to date browser or reveal your tickets by entering ticket info manually.</font> ");
+            self.setStatus('danger', "Can't restore tickets: the File APIs are not fully supported by your browser."
+                + "<br>Try again with an up to date browser or reveal your tickets by entering ticket info manually");
             return false;
         }
 
@@ -490,8 +501,7 @@ window.App = {
         else { //this is where you could fallback to Java Applet, Flash or similar
             return false;
         }
-        self.setStatus("<font color='green'>Successful ticket import from "
-                + filePath.files[0].name + "</green>");
+        self.setStatus('success', "Successful ticket import from "+ filePath.files[0].name);
         filePath.value = "";
         App.refreshUI();
         return true;
@@ -507,7 +517,7 @@ window.App = {
     startRevealing: function() {
         var self = this;
         var gasEstimate;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction... (please wait)");
 
         web3.eth.estimateGas( {from: account, data: gameInstance.startRevealing.getData }, function(error, res) {
             gasEstimate = res + 10000;
@@ -519,10 +529,11 @@ window.App = {
                 return gameInstance.getRoundInfo();
             }).then( roundRes => {
                 var roundInfo = new App.RoundInfo(roundRes);
-                self.setStatus("<font color='green'>Reveal period started.</green>");
+                self.setStatus('success', "Reveal period started.");
+                self.refreshUI();
             }).catch(function(e) {
                 console.error("startRevealing() error", e);
-                self.setStatus("<font color='red'>Error while starting to reveal; see log.</font>");
+                self.setStatus('danger', "Error while starting to reveal; see log.");
             }); // startRevealing()
         }); // estimateGas()
     },
@@ -541,7 +552,7 @@ window.App = {
     revealBet: function( gameAddress, ticket) {
         var self = this;
         var gasEstimate;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction... (please wait)");
         // TODO: first reveal ca. 194k then 121k or 88k ...
         web3.eth.estimateGas( {from: account, data: gameInstance.revealBet.getData }, function( error, res) {
             gasEstimate = res + 150000;
@@ -567,10 +578,11 @@ window.App = {
                     }
                 }
                 localStorage.setItem(gameInstance.address, JSON.stringify(ticketStore));
-                self.setStatus("<font color='green'>Bet revealed</font>" );
+                self.setStatus('success', "Bet revealed</font>" );
+                self.refreshUI();
             }).catch(function(e) {
                 console.error("revealBet() error", e);
-                self.setStatus("<font color='red'>Error while revealing your guess; see log.</font>");
+                self.setStatus('danger', "Error while revealing your guess; see log.</font>");
             }); // revealBet ()
         }); // estimateGas()
     }, // revealBet()
@@ -579,7 +591,7 @@ window.App = {
         var self = this;
         var gasEstimate;
         var roundInfo;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction, please wait.");
 
         gameInstance.getRoundInfo()
         .then( res => {
@@ -591,10 +603,11 @@ window.App = {
                     if( tx.receipt.gasUsed == gasEstimate) {
                         throw("declareWinner error, all gas used: " + tx.receipt.gasUsed);
                     }
-                    self.setStatus("<font color='green'>Winner declared</green>" );
+                    self.setStatus('success', "Winner declared" );
+                    self.refreshUI();
                 }).catch(function(e) {
                     console.error("declareWinner() error", e);
-                    self.setStatus("<font color='red'>Error while declaring winner; see log.</red>");
+                    self.setStatus('danger', "Error while declaring winner; see log.");
                 }); // declareWinner()
             }); // estimateGas()
         }); // getRoundInfo()
@@ -603,7 +616,7 @@ window.App = {
     payWinner: function() {
         var self = this;
         var gasEstimate;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction, please wait");
 
         web3.eth.estimateGas( {from: account, data: gameInstance.payWinner.getData }, function(error, res) {
             gasEstimate = res + 10000;
@@ -612,11 +625,11 @@ window.App = {
                 if( tx.receipt.gasUsed == gasEstimate) {
                     throw("payWinner error, all gas used: " + tx.receipt.gasUsed);
                 }
-                self.setStatus("<font color='green'>Winner payed</green>" );
+                self.setStatus('success', "Winner paid" );
                 self.refreshUI();
             }).catch(function(e) {
                 console.error("payWinner() error", e);
-                self.setStatus("<font color='red'>Error while paying winner; see log.</font>");
+                self.setStatus('danger', "Error while paying winner; see log.");
             }); // payWinner()
         }); // estimateGas()
     },
@@ -624,7 +637,7 @@ window.App = {
     refund: function() {
         var self = this;
         var gasEstimate;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction... (please wait)");
         var ticketId =  parseInt(document.getElementById("refundTicketId").value);
 
         web3.eth.estimateGas( {from: account, data: gameInstance.refund.getData }, function(error, res) {
@@ -634,11 +647,11 @@ window.App = {
                 if( tx.receipt.gasUsed == gasEstimate) {
                     throw("refund error, all gas used: " + tx.receipt.gasUsed);
                 }
-                self.setStatus("<font color='green'>Ticket refunded</font>" );
+                self.setStatus('success', "Ticket refunded" );
                 self.refreshUI();
             }).catch(function(e) {
                 console.error("refund() error", e);
-                self.setStatus("<font color='red'>Error while refunding; see log.</font>");
+                self.setStatus('danger', "Error while refunding; see log.");
             }); // refund()
         }); // estimateGas()
     },
@@ -646,7 +659,7 @@ window.App = {
     createGame: function() {
         var self = this;
         var gasEstimate;
-        self.setStatus("Initiating transaction... (please wait)");
+        self.setStatus('info', "Initiating transaction, please wait");
         var requiredBetAmount = web3.toWei( document.getElementById("requiredBetAmountInput").value, "ether" );
         var ticketCountLimit = parseInt(document.getElementById("ticketCountLimitInput").value);
         var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
@@ -660,11 +673,12 @@ window.App = {
             if( tx.receipt.gasUsed == gasEstimate) {
                 throw("createGame error, all gas used: " + tx.receipt.gasUsed);
             }
-            self.setStatus("<font color='green'>Game created. Idx: " + tx.logs[2].args.gameIdx
-            + " address: " + tx.logs[1].args.gameAddress + " </font>" );
+            self.setStatus('success', "Game created. Idx: " + tx.logs[2].args.gameIdx
+            + " address: " + tx.logs[1].args.gameAddress);
+            self.refreshUI();
         }).catch(function(e) {
             console.error("createGame() error", e);
-            self.setStatus("<font color='red'>Error while creating game; see log.</font>");
+            self.setStatus('danger', "Error while creating game; see log.");
         });
     },
 
