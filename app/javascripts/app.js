@@ -30,15 +30,17 @@ window.App = {
             if (err != null) {
                 self.setStatus("<font color='red'>There was an error fetching your Ethereum accounts.</red>");
                 console.error("Error getting account list: ", err);
+                document.getElementById("loadingDiv").style.display = "none";
                 document.getElementById("connectHelpDiv").style.display = "block";
-                return;
+                return ;
             }
 
             if (accs.length == 0) {
                 self.setStatus("<font color='red'>Couldn't get any accounts! Make sure your Ethereum client is configured correctly.</red>");
                 console.error("Received no account in account list");
+                document.getElementById("loadingDiv").style.display = "none";
                 document.getElementById("connectHelpDiv").style.display = "block";
-                return;
+                return ;
             }
 
             accounts = accs;
@@ -47,19 +49,124 @@ window.App = {
             lupiManager.deployed()
             .then( res => {
                 lupiManagerInstance = res;
+                self.listenToLupiManagerEvents();
                 return lupiManagerInstance.owner();
             }).then( res => {
+                document.getElementById("lupiManagerOwner").innerHTML = res;
                 if (res ==  "0x" ) {
                     throw("lupiManager at " + lupiManager.address + " returned 0x owner() - not deployed?");
                 }
-                self.refreshUI();
+                self.refreshGameInstance().then( res => {
+                    self.refreshUI();
+                });
             }).catch( error => {
                 console.error("failed to connect LupiManager or Lupi", error);
+                document.getElementById("loadingDiv").style.display = "none";
                 App.setStatus("<font color='red'>Can't find any game on Ethereum network. Are you on testnet?</font>");
                 document.getElementById("connectHelpDiv").style.display = "block";
             }); // lupiManager.deployed()
         }); // getAccounts
     }, // window.start
+
+    refreshGameInstance: function() {
+        var self = this;
+        console.debug("refreshGameInstance");
+        return lupiManagerInstance.getGamesCount()
+        .then( res => {
+            // TODO: handle if no games or game address is 0x (same way as on App.start)
+            var gamesCount = res.toNumber();
+            var gameIdx = gamesCount - 1;
+            document.getElementById("gameIdx").innerHTML = gameIdx;
+            document.getElementById("gamesCount").innerHTML = gamesCount;
+
+            return lupiManagerInstance.games(gameIdx);
+        }).then( res => {
+            gameInstance = Lupi.at(res);
+            self.listenToLupiEvents();
+            document.getElementById("contractAddress").innerHTML = gameInstance.address;
+
+            return gameInstance.owner();
+        }).then( gameInstanceOwner => {
+            document.getElementById("contractOwner").innerHTML = gameInstanceOwner;
+
+            return gameInstance;
+        });
+    },
+
+    listenToLupiManagerEvents: function() {
+        var startFromBlock ;
+        var self = this;
+        console.debug("listenToLupiManagerEvents");
+        web3.eth.getBlockNumber( function(error, res) {
+            startFromBlock = res ;
+            lupiManagerInstance.e_GameCreated({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+                if (error) {
+                    console.error("listenToLupiManagerEvents() e_GameCreated error:", error);
+                } else {
+                    if(startFromBlock < result.blockNumber) {
+                        console.debug("e_GameCreated");
+                        // FIXME: remove watch from previous game
+                        self.refreshGameInstance().then( res => {
+                            self.refreshUI();
+                        });
+                    }
+                }
+            }); // e_GameCreated
+        }); // getBlockNumber
+    }, // listenToLupiManagerEvents
+
+    listenToLupiEvents: function() {
+        var startFromBlock;
+        var self = this;
+        console.debug("listenToLupiEvents");
+        web3.eth.getBlockNumber( function(error, res) {
+            startFromBlock = res ;
+            gameInstance.e_BetPlaced({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+                if (error) {
+                    console.error("listenToLupiEvents() e_BetPlaced error:", error);
+                } else {
+                    if(startFromBlock < result.blockNumber) {
+                        console.debug("e_BetPlaced");
+                        self.refreshUI();
+                    }
+                }
+            }); // e_BetPlaced
+
+            gameInstance.e_RevealStarted({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+                if (error) {
+                    console.error("listenToLupiEvents() e_RevealStarted error:", error);
+                } else {
+                    if(startFromBlock < result.blockNumber) {
+                        console.debug("e_RevealStarted");
+                        self.refreshUI();
+                    }
+                }
+            }); // e_RevealStarted
+
+            gameInstance.e_BetRevealed({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+                if (error) {
+                    console.error("listenToLupiEvents() e_BetRevealed error:", error);
+                } else {
+                    if(startFromBlock < result.blockNumber) {
+                        console.debug("e_BetRevealed");
+                        self.refreshUI();
+                    }
+                }
+            }); // e_BetRevealed
+
+            gameInstance.e_WinnerDeclared({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+                if (error) {
+                    console.error("listenToLupiEvents() e_WinnerDeclared error:", error);
+                } else {
+                    if(startFromBlock < result.blockNumber) {
+                        console.debug("e_WinnerDeclared");
+                        self.refreshUI();
+                    }
+                }
+            }); // e_WinnerDeclared
+        }); // getBlockNumber
+
+    },  // listenToLupiEvents
 
     setStatus: function(message) {
         var status = document.getElementById("status");
@@ -107,6 +214,8 @@ window.App = {
 
     refreshUI: function() {
         var self = this;
+        console.debug("refreshUI");
+        document.getElementById("loadingDiv").style.display = "block";
         if (typeof(Storage) !== "undefined" && localStorage.length > 0) {
             document.getElementById("backupDiv").style.display = "block";
         }
@@ -125,38 +234,17 @@ window.App = {
             }
         }); // getBalance(account)
 
-        lupiManagerInstance.getGamesCount()
-        .then( res => {
-            // TODO: handle if no games or game address is 0x (same way as on App.start)
-            var gamesCount = res.toNumber();
-            var gameIdx = gamesCount - 1;
-            document.getElementById("gameIdx").innerHTML = gameIdx;
-            document.getElementById("gamesCount").innerHTML = gamesCount;
+        web3.eth.getBalance(gameInstance.address, function(error, res) {
+            if (error) {
+                self.setStatus("<font color='red'>Error getting contract balance; see log.</font>");
+                console.error("refreshUI().getBalance(gameInstance.address) error", error);
+            } else {
+                document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
+            }
+        }); // getBalance(gameInstance)
 
-            return lupiManagerInstance.games(gameIdx);
-        }).then( res => {
-            gameInstance = Lupi.at(res);
-            document.getElementById("contractAddress").innerHTML = gameInstance.address;
-
-            return lupiManagerInstance.owner();
-        }).then( lupiManagerInstanceOwner => {
-            document.getElementById("lupiManagerOwner").innerHTML = lupiManagerInstanceOwner;
-
-            return gameInstance.owner();
-        }).then( gameInstanceOwner => {
-            document.getElementById("contractOwner").innerHTML = gameInstanceOwner;
-
-            web3.eth.getBalance(gameInstance.address, function(error, res) {
-                if (error) {
-                    self.setStatus("<font color='red'>Error getting contract balance; see log.</font>");
-                    console.error("refreshUI().getBalance(gameInstance.address) error", error);
-                } else {
-                    document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
-                }
-            }); // getBalance(gameInstance)
-
-            return gameInstance.getRoundInfo();
-        }).then( roundRes => {
+        gameInstance.getRoundInfo()
+        .then( roundRes => {
             var roundInfo = new App.RoundInfo(roundRes);
             document.getElementById("winnablePotAmount").innerHTML = web3.fromWei(roundInfo.winnablePotAmount);
             document.getElementById("requiredBetAmount").innerHTML = web3.fromWei(roundInfo.requiredBetAmount);
@@ -252,8 +340,10 @@ window.App = {
                 winnerAlreadyPayedDiv.style.display =  "none";
                 payWinnerDiv.style.display = "none";
             }
+            document.getElementById("loadingDiv").style.display = "none";
 
         }).catch(function(e) {
+            document.getElementById("loadingDiv").style.display = "none";
             console.error("refreshUI() error", e);
             self.setStatus("<font color='red'>Error updating data; see log.</font>");
         });
@@ -280,7 +370,7 @@ window.App = {
             web3.eth.estimateGas( {from: account, data: gameInstance.placeBet.getData}, function(error, res ) {
                 gasEstimate = res + 50000;
                 gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: gasEstimate})
-                .then(function( tx) {
+                .then( tx =>  {
                     if( tx.receipt.gasUsed == gasEstimate) {
                         throw("placeBet error, all gas used: " + tx.receipt.gasUsed);
                     }
@@ -312,7 +402,6 @@ window.App = {
                     }
                     status += "<br><strong>2. Subscribe for notifications </strong> below to know when you need to reveal your ticket</font>";
                     self.setStatus(status);
-                    self.refreshUI();
                     placeBetButton.disabled = false;
                 }).catch(function(e) {
                     console.error("placeBet() error", e);
@@ -329,6 +418,7 @@ window.App = {
     }, // placeBet()
 
     exportTickets: function() {
+        // FIXME: parse uses localStorage too, export only lupi game related entires, eg. add lupi/ prefix to key
         var toSave = [JSON.stringify(localStorage, null, 2)];
         var toSaveBlob = new Blob(toSave, {type: "data:application/json"})
         FileSaver.saveAs(toSaveBlob, "TicketBackup"
@@ -430,7 +520,6 @@ window.App = {
             }).then( roundRes => {
                 var roundInfo = new App.RoundInfo(roundRes);
                 self.setStatus("<font color='green'>Reveal period started.</green>");
-                self.refreshUI();
             }).catch(function(e) {
                 console.error("startRevealing() error", e);
                 self.setStatus("<font color='red'>Error while starting to reveal; see log.</font>");
@@ -453,9 +542,9 @@ window.App = {
         var self = this;
         var gasEstimate;
         self.setStatus("Initiating transaction... (please wait)");
-        // TODO: first reveal ca. 167000 then 11700 or 770000 ...
+        // TODO: first reveal ca. 194k then 121k or 88k ...
         web3.eth.estimateGas( {from: account, data: gameInstance.revealBet.getData }, function( error, res) {
-            gasEstimate = res + 140000;
+            gasEstimate = res + 150000;
             gameInstance.revealBetForAddress(ticket.account, ticket.ticketId, ticket.guess, ticket.salt, {from: account, gas: gasEstimate})
             .then( tx => {
                 if( tx.receipt.gasUsed == gasEstimate) {
@@ -479,7 +568,6 @@ window.App = {
                 }
                 localStorage.setItem(gameInstance.address, JSON.stringify(ticketStore));
                 self.setStatus("<font color='green'>Bet revealed</font>" );
-                self.refreshUI();
             }).catch(function(e) {
                 console.error("revealBet() error", e);
                 self.setStatus("<font color='red'>Error while revealing your guess; see log.</font>");
@@ -504,7 +592,6 @@ window.App = {
                         throw("declareWinner error, all gas used: " + tx.receipt.gasUsed);
                     }
                     self.setStatus("<font color='green'>Winner declared</green>" );
-                    self.refreshUI();
                 }).catch(function(e) {
                     console.error("declareWinner() error", e);
                     self.setStatus("<font color='red'>Error while declaring winner; see log.</red>");
@@ -575,7 +662,6 @@ window.App = {
             }
             self.setStatus("<font color='green'>Game created. Idx: " + tx.logs[2].args.gameIdx
             + " address: " + tx.logs[1].args.gameAddress + " </font>" );
-            self.refreshUI();
         }).catch(function(e) {
             console.error("createGame() error", e);
             self.setStatus("<font color='red'>Error while creating game; see log.</font>");
@@ -618,7 +704,7 @@ window.App = {
 window.addEventListener('load', function() {
   // Checking if Web3 has been injected by the browser (Mist/MetaMask)
   if (typeof web3 !== 'undefined') {
-    console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 MetaCoin, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
+    console.warn("Using web3 detected from external source.");
     // Use Mist/MetaMask's provider
     window.web3 = new Web3(web3.currentProvider);
   } else {
