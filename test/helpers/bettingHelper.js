@@ -52,7 +52,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
              assert.equal(tx.logs[0].args.player, bet.playerAddress, "playerAddress should be set in e_BetPlaced event");
              //assert.equal(tx.logs[0].args.ticketId, ??, "ticketId should be set in e_BetPlaced event");
 
-             testHelper.logGasUse(roundName, "placeBet() ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
+             testHelper.logGasUse(roundName, "placeBet()", "ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
              return tx;
          })
      )); // return new Promise
@@ -76,7 +76,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
              assert.equal(revealTx.logs[revealedEventIdx].args.ticketId, bet.ticketId, "ticketId should be set in e_BetRevealed event");
              assert.equal(revealTx.logs[revealedEventIdx].args.bet, bet.number, "bet should be set in e_BetRevealed event");
 
-             testHelper.logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "
+             testHelper.logGasUse(roundName, "revealBet()", "ticketId: " + bet.ticketId + " | idx: "
                  + bet.idx + " | number: " + bet.number, revealTx);
              return revealTx;
          })
@@ -88,7 +88,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
      return new Promise(resolve => resolve(
          gameInstance.refund(bet.ticketId, {from: defaultTxAccount})
          .then( refundTx => {
-             testHelper.logGasUse(roundName, "refund() ticketId: " + bet.ticketId + " | bet idx: "
+             testHelper.logGasUse(roundName, "refund()", "ticketId: " + bet.ticketId + " | bet idx: "
                  + bet.idx + " | number: " + bet.number, refundTx);
              return refundTx;
          })
@@ -136,7 +136,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         revealStartTime = moment().utc().unix();
         return gameInstance.startRevealing({from: defaultTxAccount});
     }).then( res => {
-        testHelper.logGasUse(roundName, "startRevealing()", res);
+        testHelper.logGasUse(roundName, "startRevealing()", "", res);
 
         var result = 0;
         if (toRevealCt != 0) {
@@ -161,7 +161,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         contractBalanceBefore = web3.eth.getBalance(gameInstance.address);
         return gameInstance.declareWinner({ from: defaultTxAccount});
     }).then( tx => {
-        testHelper.logGasUse(roundName, "declareWinner()", tx);
+        testHelper.logGasUse(roundName, "declareWinner()", "", tx);
         expWinningTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
         assert.equal(tx.logs[0].event, "e_WinnerDeclared", "e_WinnerDeclared event should be emmitted");
         assert.equal(tx.logs[0].args.winningTicket , expWinningTicketId, "winningTicket should be set in e_WinnerDeclared event");
@@ -195,7 +195,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         } else {
             return gameInstance.payWinner({from: defaultTxAccount})
             .then( tx => {
-                testHelper.logGasUse(roundName, "payWinner()", tx);
+                testHelper.logGasUse(roundName, "payWinner()", "", tx);
                 return gameInstance.getRoundInfo();
             });
         }

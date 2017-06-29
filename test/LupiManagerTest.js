@@ -34,7 +34,7 @@ contract("LupiManager tests", accounts => {
             instance = res;
             return instance.addGame(gameToAdd, { from: accounts[1]});
         }).then( tx => {
-            testHelper.logGasUse("LupiManager", "addGame()", tx);
+            testHelper.logGasUse("LupiManager", "addGame()", "", tx);
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.getGamesCount();
         }).then ( res => {
@@ -58,7 +58,7 @@ contract("LupiManager tests", accounts => {
             return instance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd,
                  revealPeriodLength, feePt, { gas: 1200000});
         }).then( tx => {
-            testHelper.logGasUse("LupiManager", "createGame()", tx);
+            testHelper.logGasUse("LupiManager", "createGame()", "", tx);
             assert.equal(tx.logs[1].event, "e_GameCreated", "e_GameCreated event should be emmitted");
             gameAddress = tx.logs[1].args.gameAddress;
             gameIdx = tx.logs[2].args.gameIdx;

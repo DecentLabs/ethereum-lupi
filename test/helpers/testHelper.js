@@ -3,8 +3,8 @@ global.assert = require('assert');
 
 var gasUseLog = new Array();
 
-function logGasUse(roundName, tran, tx) {
-    gasUseLog.push(  [roundName, tran, tx.receipt.gasUsed ]);
+function logGasUse(roundName, tran, args, tx) {
+    gasUseLog.push(  [roundName, tran, args, tx.receipt.gasUsed ]);
 } //  logGasUse ()
 
 /* function unlockAccounts( accounts) { // it's for testnetwork but couldn't dedect if we are on testrpc so just doing it from commandline
@@ -43,12 +43,12 @@ after( function() {
     if(gasUseLog.length > 0 ) {
         // console.log("full title:", this.parent.fullTitle()); // CHECK: why doesn't it work?
         console.log("===================  GAS USAGE STATS " + "" + " ===================");
-        console.log("testround, transaction,  gas used");
+        console.log("testround, transaction, args, gas used");
         //console.log(gasUseLog);
         var sum = 0;
         for (var i =0; i < gasUseLog.length; i++) {
-            console.log('"' + gasUseLog[i][0] + '", "' + gasUseLog[i][1] + '", ' + gasUseLog[i][2]);
-            sum += gasUseLog[i][2];
+            console.log('"' + gasUseLog[i][0] + '", "' + gasUseLog[i][1] + '", "' + gasUseLog[i][2] + '", ' + gasUseLog[i][3]);
+            sum += gasUseLog[i][3];
         }
 
         console.log("=========== Total gas usage : " + sum);

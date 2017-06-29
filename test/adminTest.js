@@ -51,7 +51,7 @@ contract("Lupi admin tests", accounts => {
 
         instance.setOwner(newOwner, { from: ownerAddress })
         .then( tx => {
-            helper.logGasUse("Change Owner", "setOwner() by owner", tx);
+            helper.logGasUse("Change Owner", "setOwner()", "by owner", tx);
             assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
             assert.equal(tx.logs[0].args.old, ownerAddress, "old owner should be set in event");
             assert.equal(tx.logs[0].args.current, newOwner, "new owner should be set in event");
@@ -67,7 +67,7 @@ contract("Lupi admin tests", accounts => {
         var newOwner = accounts[2];
         instance.setOwner(newOwner, { from: newOwner })
         .then( tx => {
-            helper.logGasUse("Change Owner", "setOwner() by non owner", tx);
+            helper.logGasUse("Change Owner", "setOwner()", "by non owner", tx);
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.owner();
         }).then ( ownerRes => {
