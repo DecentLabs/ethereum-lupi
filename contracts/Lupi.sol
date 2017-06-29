@@ -72,7 +72,12 @@ contract Lupi is owned {
     }
 
     function getWinnablePotAmount() constant returns (uint winnablePotAmount) {
-        return ticketCountLimit * requiredBetAmount * (1000000 - feePt) / 1000000 ;
+        if (ticketCountLimit == 0 ) {
+            winnablePotAmount = (tickets.length -1) * requiredBetAmount * (1000000 - feePt) / 1000000;
+        } else {
+            winnablePotAmount = ticketCountLimit * requiredBetAmount * (1000000 - feePt) / 1000000;
+        }
+        return winnablePotAmount;
     }
 
     function getCurrentPotAmount() constant returns (uint currentPotAmount) {
