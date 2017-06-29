@@ -4,7 +4,7 @@ contract("Lupi seal tests", accounts => {
     var instance, ownerAddress;
 
     before(done => {
-        lupi.new(1, 1, 1, 1)
+        lupi.new(1, 1, 0, 1, 1)
         .then( contractInstance => {
             instance = contractInstance;
             return instance.owner();

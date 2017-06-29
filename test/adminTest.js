@@ -1,16 +1,18 @@
 var lupi = artifacts.require("./Lupi.sol");
-var helper = new require('./helpers/helper.js');
+var helper = new require('./helpers/testHelper.js');
+var lupiHelper = new require('../app/javascripts/LupiHelper.js');
 var BigNumber = require('bignumber.js');
 
 contract("Lupi admin tests", accounts => {
     var instance, ownerAddress;
-    var requiredBetAmount = new BigNumber( 1000000000000000000);
+    var requiredBetAmount = new BigNumber( web3.toWei(1));
     var ticketCountLimit = 2;
+    var bettingPeriodEnds = 0;
     var feePt = 10000;
     var revealPeriodLength = 14400;
 
     before(done => {
-        lupi.new(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt)
+        lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodEnds, revealPeriodLength, feePt)
         .then( contractInstance => {
             instance = contractInstance;
             return instance.owner();
@@ -23,21 +25,23 @@ contract("Lupi admin tests", accounts => {
     it('contract should be setup with initial parameters', done => {
          instance.getRoundInfo()
         .then( res => {
-            assert.equal(res[0], 0, "state should be 'Betting' (0)");
-            assert.equal(res[1].toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
-            assert.equal(res[2], feePt, "feePt should be set");
-            assert.equal(res[3], ticketCountLimit, "ticketCountLimit should be set");
-            assert.equal(res[4], revealPeriodLength, "revealPeriodLength should be set");
-            assert.equal(res[5], 0, "ticketCount should be 0");
-            assert.equal(res[6], 0, "reveleadCount should be 0");
-            assert.equal(res[7], 0, "feeAmount should be 0");
+            var roundInfo = new lupiHelper.RoundInfo(res);
+            assert.equal(roundInfo.state, 0, "state should be 'Betting' (0)");
+            assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
+            assert.equal(roundInfo.feePt, feePt, "feePt should be set");
+            assert.equal(roundInfo.bettingPeriodEnds, bettingPeriodEnds, "bettingPeriodEnds should be set");
+            assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "ticketCountLimit should be set");
+            assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "revealPeriodLength should be set");
+            assert.equal(roundInfo.ticketCount, 0, "ticketCount should be 0");
+            assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
+            assert.equal(roundInfo.feeAmount, 0, "feeAmount should be 0");
             var expWinnablePotAmount = requiredBetAmount.times(ticketCountLimit).times( 1 - feePt / 1000000);
-            assert.equal(res[8].toString(), expWinnablePotAmount.toString(), "winnablePotAmount should be set");
-            assert.equal(res[9], 0, "currentPotAmount should be 0");
-            assert.equal(res[10], 0, "winningTicket should be 0");
-            assert.equal(res[11], 0, "winnerAddress should be 0");
-            assert.equal(res[12], 0, "winningNumber should be set");
-            assert.equal(res[13], 0, "revealPeriodEnds should be 0");
+            assert.equal(roundInfo.winnablePotAmount.toString(), expWinnablePotAmount.toString(), "winnablePotAmount should be set");
+            assert.equal(roundInfo.currentPotAmount, 0, "currentPotAmount should be 0");
+            assert.equal(roundInfo.winningTicket, 0, "winningTicket should be 0");
+            assert.equal(roundInfo.winningAddress, 0, "winningAddress should be 0");
+            assert.equal(roundInfo.winningNumber, 0, "winningNumber should be set");
+            assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0");
             done();
         });
     });
@@ -85,5 +89,9 @@ contract("Lupi admin tests", accounts => {
             done();
         }); // expectThrow
     }); // ticketCount limit should be greater than 0
+
+    it('bettingPeriodEnd should be set if there is no ticketCountLimit');
+    it('ticketCountLimit should be set if there is no bettingPeriodEnd');
+    it('bettingPeriodEnd should be 0 or later than now');
 
 }); // contract("lupi")

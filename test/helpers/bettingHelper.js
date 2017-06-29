@@ -2,7 +2,9 @@
 global.assert = require('assert');
 var lupi = artifacts.require("./Lupi.sol");
 var BigNumber = require('bignumber.js');
-var helper = new require('./helper.js');
+var testHelper = new require('./testHelper.js');
+var lupiHelper = new require('../../app/javascripts/LupiHelper.js');
+var moment = require('moment');
 
 var salt = "0xdb8780d713083a9addb6494cfc767d6ef4b1358315737e06bbb7fd84cc493d1c";
 // needed to avoid polluting owner & player account with tx costs
@@ -26,6 +28,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
             // for no winner round pass 0 for expWinningIdx & expWinningNumbert
             // omit toRevealCt arg if you want to reveal all bets
     var ticketCountLimit = betsToPlace.length;
+    var bettingPeriodEnd =  0;
     if (typeof toRevealCt == "undefined") {
         toRevealCt = betsToPlace.length;
     }
@@ -49,7 +52,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
              assert.equal(tx.logs[0].args.player, bet.playerAddress, "playerAddress should be set in e_BetPlaced event");
              //assert.equal(tx.logs[0].args.ticketId, ??, "ticketId should be set in e_BetPlaced event");
 
-             helper.logGasUse(roundName, "placeBet() ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
+             testHelper.logGasUse(roundName, "placeBet() ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
              return tx;
          })
      )); // return new Promise
@@ -61,7 +64,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
          gameInstance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
          .then( revealTx => {
              var revealedEventIdx = 0;
-             if( bet.ticketId == 1 ) {
+             if( revealTx.logs.length == 2 ) { // this is the first reveal
                  //console.log(revealTx.logs[0].revealPeriodEnds, revealPeriodLength + revealStartTime);
                  assert.equal(revealTx.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after first reveal");
                  assert(revealTx.logs[0].args.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
@@ -73,7 +76,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
              assert.equal(revealTx.logs[revealedEventIdx].args.ticketId, bet.ticketId, "ticketId should be set in e_BetRevealed event");
              assert.equal(revealTx.logs[revealedEventIdx].args.bet, bet.number, "bet should be set in e_BetRevealed event");
 
-             helper.logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "
+             testHelper.logGasUse(roundName, "revealBet() ticketId: " + bet.ticketId + " | idx: "
                  + bet.idx + " | number: " + bet.number, revealTx);
              return revealTx;
          })
@@ -85,14 +88,13 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
      return new Promise(resolve => resolve(
          gameInstance.refund(bet.ticketId, {from: defaultTxAccount})
          .then( refundTx => {
-             helper.logGasUse(roundName, "refund() ticketId: " + bet.ticketId + " | bet idx: "
+             testHelper.logGasUse(roundName, "refund() ticketId: " + bet.ticketId + " | bet idx: "
                  + bet.idx + " | number: " + bet.number, refundTx);
              return refundTx;
          })
      )); // return new Promise
     }; // _refundFn()
-
-    return lupi.new(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt, {from: ownerAddress})
+    return lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodEnd, revealPeriodLength, feePt, {from: ownerAddress})
     .then( res => {
         gameInstance = res;
         contractBalanceBefore = web3.eth.getBalance(gameInstance.address);
@@ -100,7 +102,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         playerBalanceBefore = web3.eth.getBalance(playerAddress);
         return gameInstance.getRoundInfo();
     }).then( roundInfoRes => {
-        var roundInfo = helper.parseRoundInfo(roundInfoRes);
+        var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         var expFeeAmount = requiredBetAmount * feePt / 1000000 * ticketCountLimit;
         var expWinnablePot = requiredBetAmount * ticketCountLimit - expFeeAmount;
         assert.equal(roundInfo.winnablePotAmount.toString(), expWinnablePot.toString(), "new round winnablePotAmount should be set");
@@ -116,7 +118,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
     }).then( betsTxs => {
         return gameInstance.getRoundInfo();
     }).then( roundInfoRes => {
-        var roundInfo = helper.parseRoundInfo(roundInfoRes);
+        var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         assert.equal(roundInfo.state, "0", "Round state should be still Betting after bet");
         assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set");
         assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
@@ -131,7 +133,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
             contractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
             "contract should receive the requiredBetAmount");
 
-        revealStartTime = Math.floor(Date.now() / 1000);
+        revealStartTime = moment().utc().unix();
         var results;
         if ( toRevealCt == 0 ) {
             results = gameInstance.startRevealing({from: defaultTxAccount});
@@ -142,11 +144,11 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         return results;
     }).then( revealTxs => {
         if (toRevealCt == 0) {
-            helper.logGasUse(roundName, "startRevealing()", revealTxs);
+            testHelper.logGasUse(roundName, "startRevealing()", revealTxs);
         }
        return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
-        var roundInfo = helper.parseRoundInfo(roundInfoRes);
+        var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         assert.equal(roundInfo.state, "1", "Round state should be Revealing after first reveal / startRevealing");
         assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
         assert.equal(roundInfo.revealedCount, toRevealCt, "revealedCount should be set after last bet revealed");
@@ -160,7 +162,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         contractBalanceBefore = web3.eth.getBalance(gameInstance.address);
         return gameInstance.declareWinner({ from: defaultTxAccount});
     }).then( tx => {
-        helper.logGasUse(roundName, "declareWinner()", tx);
+        testHelper.logGasUse(roundName, "declareWinner()", tx);
         expWinningTicketId = (expWinningNumber == 0) ? 0 :  betsToPlace[expWinningIdx-1].ticketId;
         assert.equal(tx.logs[0].event, "e_WinnerDeclared", "e_WinnerDeclared event should be emmitted");
         assert.equal(tx.logs[0].args.winningTicket , expWinningTicketId, "winningTicket should be set in e_WinnerDeclared event");
@@ -169,7 +171,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
 
         return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
-        var roundInfo = helper.parseRoundInfo(roundInfoRes);
+        var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         assert.equal(roundInfo.state, expWinningNumber == 0 ? "3" : "2", "Round state should be Won or Tied after declareWinner()");
 
         assert.equal(roundInfo.winningTicket, expWinningTicketId, "The winningTicket should be set after declareWinner()");
@@ -194,12 +196,12 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         } else {
             return gameInstance.payWinner({from: defaultTxAccount})
             .then( tx => {
-                helper.logGasUse(roundName, "payWinner()", tx);
+                testHelper.logGasUse(roundName, "payWinner()", tx);
                 return gameInstance.getRoundInfo();
             });
         }
     }).then( roundInfoRes => {
-        var roundInfo = helper.parseRoundInfo(roundInfoRes);
+        var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         var ownerBalance = web3.fromWei(web3.eth.getBalance(ownerAddress)).toString();
         var contractBalance = web3.fromWei(web3.eth.getBalance(gameInstance.address)).toString();
         var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddress)).toString();

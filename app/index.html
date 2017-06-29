@@ -44,11 +44,12 @@
 
         <div id="guessDiv" style="display:none">
             <br>Pick the smallest unique number that no one else picks
-            <br>Winnable amount: <span id="winnablePotAmount">?</span> ether
-            <br><span id="ticketCount"></span> guesses placed from <span id="ticketCountLimit1">?</span>
+            <br>Current winnable pot amount: <span id="currentPotAmount">?</span> ether
             <br><br><label for="guess">Your guess: </label><input type="text" id="guess" style="width: auto;" size="25" placeholder="enter a positive integer"></input>
             <br><button id="placeBetButton" onclick="App.placeBet()">Submit my guess</button>
+            <br><span id="ticketCount"></span> guesses placed so far
             <br>Ticket cost: <span id="requiredBetAmount">?</span> ether
+            <br>Betting period will end <span id="bettingPeriodEndsText">?</span>
             <br>
             <hr>
         </div> <!-- guessDiv -->
@@ -65,15 +66,15 @@
 
         <div id="revealDiv" style="display:none">
             <div id="revealFirstDiv">
-                <h2>All bets received, start revealing</h2>
-                <br>Maximum number of bets placed. Start the reveal period by revealing a guess.
+                <h2>Betting period over, start revealing</h2>
+                <br>Start the reveal period by revealing a guess.
                 <br>Reveal period will last <span id="revealPeriodLength1">?</span>
             </div> <!-- firstRevealDiv -->
             <div id="revealRunningDiv">
                 <h2>Reveal ticket</h2>
                 <br>Reveal period end: <span id="revealPeriodEnds">?</span>
             </div> <!-- additionalRevealDiv -->
-            <br><span id="revealedCount">?</span> revealed from <span id="ticketCountLimit2">?</span>
+            <br><span id="revealedCount">?</span> revealed from <span id="ticketCountLimit">?</span>
             <div id="ticketsToRevealDiv">
             <br><strong>Your tickets </strong><br>
             <div id="ticketsListDiv">
@@ -164,6 +165,8 @@
             <br>Game contract address: <span id="contractAddress">?</span>
             <br>Game contract owner: <span id="contractOwner">?</span>
             <br>Game contract balance: <span id="contractBalance">?</span>
+            <br>Latest block: <span id="latestBlock">?</span>
+            <br>Block timestamp: <span id="blockTimeStamp">?</span> (<span id="blockTimeStampFormatted">?</span>)
             <br>
             <br><span id="roundInfoDebug"></span>
             <div id="revealStartOnlyDiv" style="display:none">
@@ -178,6 +181,7 @@
                 <br>only by owner<br>
                 <br><label for="requiredBetAmountInput">Bet amount:</label><input type="number" id="requiredBetAmountInput" style="width: auto;" size="10" placeholder=""></input> ether
                 <br><label for="ticketCountLimitInput">Ticket limit:</label><input type="number" id="ticketCountLimitInput" style="width: auto;" size="10" placeholder=""></input>
+                <br><label for="bettingPeriodLengthInput">Betting period length:</label><input type="number" id="bettingPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
                 <br><label for="revealPeriodLengthInput">Reveal period:</label><input type="number" id="revealPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
                 <br><label for="feePtInput">fee:</label><input type="number" id="feePtInput" placeholder="" style="width: auto;" size="5" maxlength="5"></input> %
                 <br><br><button id="send" onclick="App.createGame()">Create new game</button>

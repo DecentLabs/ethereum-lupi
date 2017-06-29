@@ -1,6 +1,8 @@
 var lupiManager = artifacts.require("./LupiManager.sol");
 var lupi = artifacts.require("./Lupi.sol");
-var helper = new require('./helpers/helper.js');
+var testHelper = new require('./helpers/testHelper.js');
+var lupiHelper = new require('../app/javascripts/LupiHelper.js');
+var moment = require('moment');
 var BigNumber = require('bignumber.js');
 
 contract("LupiManager tests", accounts => {
@@ -32,7 +34,7 @@ contract("LupiManager tests", accounts => {
             instance = res;
             return instance.addGame(gameToAdd, { from: accounts[1]});
         }).then( tx => {
-            helper.logGasUse("LupiManager", "addGame()", tx);
+            testHelper.logGasUse("LupiManager", "addGame()", tx);
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.getGamesCount();
         }).then ( res => {
@@ -42,8 +44,9 @@ contract("LupiManager tests", accounts => {
 
     it('should be possible to create a new game', () => {
         var instance, gameInstance, gameIdx, gameAddress, lupiManagerOwnerAddress;
-        var requiredBetAmount = new BigNumber( 1000000000000000000);
+        var requiredBetAmount = new BigNumber( web3.toWei(1));
         var ticketCountLimit = 2;
+        var bettingPeriodEnd = moment().utc().unix() + 600;
         var feePt = 10000;
         var revealPeriodLength = 14400;
 
@@ -52,10 +55,10 @@ contract("LupiManager tests", accounts => {
             return instance.owner();
         }).then( res => {
             lupiManagerOwnerAddress = res;
-            return instance.createGame(requiredBetAmount, ticketCountLimit,
+            return instance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd,
                  revealPeriodLength, feePt, { gas: 1200000});
         }).then( tx => {
-            helper.logGasUse("LupiManager", "createGame()", tx);
+            testHelper.logGasUse("LupiManager", "createGame()", tx);
             assert.equal(tx.logs[1].event, "e_GameCreated", "e_GameCreated event should be emmitted");
             gameAddress = tx.logs[1].args.gameAddress;
             gameIdx = tx.logs[2].args.gameIdx;
@@ -76,10 +79,11 @@ contract("LupiManager tests", accounts => {
             assert.equal(res, lupiManagerOwnerAddress, "new game owner should be the same as lupiManager's owner");
             return gameInstance.getRoundInfo();
         }).then( res => {
-            var roundInfo = helper.parseRoundInfo(res);
+            var roundInfo = new lupiHelper.RoundInfo(res);
             assert.equal(roundInfo.state, 0, "new game state should be betting");
             assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "new game requiredBetAmount should be set");
             assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "new game ticketCountLimit should be set");
+            assert.equal(roundInfo.bettingPeriodEnds, bettingPeriodEnd, "new game bettingPeriodEnd should be set");
             assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "new game revealPeriodLength should be set");
             assert.equal(roundInfo.feePt, feePt, "new game feePt should be set");
         });
@@ -89,7 +93,7 @@ contract("LupiManager tests", accounts => {
         var instance;
         return lupiManager.new().then( res => {
             instance = res;
-            return instance.createGame(1,1,1,1, { from: accounts[1]});
+            return instance.createGame(1,1,0,1,1, { from: accounts[1]});
         }).then( tx => {
             assert.equal(tx.logs.length, 0, "no event should be emmitted");
             return instance.getGamesCount();

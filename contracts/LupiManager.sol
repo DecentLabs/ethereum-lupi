@@ -19,9 +19,9 @@ contract LupiManager is owned {
     }
 
     event e_GameCreated(address gameAddress);
-    function createGame(uint _requiredBetAmount, uint _ticketCountLimit,
+    function createGame(uint _requiredBetAmount, uint _ticketCountLimit, uint _bettingPeriodEnd,
          uint _revealPeriodLength, uint _feePt) onlyOwner returns (uint gameIdx, address gameAddress) {
-        gameAddress = new Lupi(_requiredBetAmount, _ticketCountLimit, _revealPeriodLength, _feePt);
+        gameAddress = new Lupi(_requiredBetAmount, _ticketCountLimit, _bettingPeriodEnd, _revealPeriodLength, _feePt);
         Lupi gameInstance = Lupi(gameAddress);
         gameInstance.setOwner(owner);
         e_GameCreated(gameAddress);

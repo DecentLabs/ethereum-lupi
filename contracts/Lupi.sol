@@ -5,7 +5,10 @@ import "./Owned.sol";
 contract Lupi is owned {
     // round parameters, set only in constructor
     uint public requiredBetAmount;
-    uint public ticketCountLimit;
+    // Betting runs until ticketCountLimit reached or bettingPeriodEnds passed
+    // One of ticketCountLimit or bettingPeriodEnds should be set (or both)
+    uint public ticketCountLimit; // Betting until x bets placed. 0 if no limit.
+    uint public bettingPeriodEnds; // Betting until this time (unix epoch in seconds). 0 if no timeLimit
     uint public feePt; // feePt in parts per million , ie. 10,000 = 1%
     uint public revealPeriodLength;
     uint public revealPeriodEnds; // set when revealing started
@@ -32,32 +35,32 @@ contract Lupi is owned {
 
     // TODO: function getBets(address _player) constant returns bets[]
 
-    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _revealPeriodLength, uint _feePt ) {
-        require(_ticketCountLimit > 0);
+    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _bettingPeriodEnd, uint _revealPeriodLength, uint _feePt ) {
+        require(_ticketCountLimit > 0 || _bettingPeriodEnd > now);
+        require(_bettingPeriodEnd > now || _bettingPeriodEnd == 0);
         require(_requiredBetAmount * _feePt / 1000000 < _requiredBetAmount);
         requiredBetAmount = _requiredBetAmount;
         ticketCountLimit = _ticketCountLimit;
         revealPeriodLength = _revealPeriodLength;
+        bettingPeriodEnds = _bettingPeriodEnd;
         feePt = _feePt;
         // ticket zero is reserved
         tickets.length = 1;
     }
 
     function getRoundInfo() constant returns (
-            State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit, uint _revealPeriodLength,
+            State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit, uint _bettingPeriodEnds, uint _revealPeriodLength,
             uint _ticketCount, uint _revealedCount,
             uint _feeAmount,
             uint _winnablePotAmount,
-            uint _currentPotAmount,
             uint _winningTicket,
             address _winningAddress,
             uint _winningNumber,
             uint _revealPeriodEnds) {
-        return ( state, requiredBetAmount, feePt, ticketCountLimit, revealPeriodLength,
+        return ( state, requiredBetAmount, feePt, ticketCountLimit, bettingPeriodEnds, revealPeriodLength,
             tickets.length -1, revealedCount,
             getFeeAmount(),
             getWinnablePotAmount(),
-            getCurrentPotAmount(),
             winningTicket,
             tickets[winningTicket].player,
             tickets[winningTicket].revealedBet,
@@ -89,16 +92,18 @@ contract Lupi is owned {
     function placeBet(bytes32 _secretBet) payable returns (uint ticket) {
         require(state == State.Betting);
         require(msg.value == requiredBetAmount);
-        require( tickets.length < ticketCountLimit + 1 );
+        require(bettingPeriodEnds > now || bettingPeriodEnds == 0);
+        require(tickets.length < ticketCountLimit + 1 || ticketCountLimit == 0);
         ticket = tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
         e_BetPlaced(msg.sender, ticket);
+        ticket = 1;
         return ticket;
     }
 
     event e_RevealStarted(uint revealPeriodEnds);
     function startRevealing() {
         require(state == State.Betting );
-        require(ticketCountLimit == tickets.length -1 );
+        require(ticketCountLimit == tickets.length -1 || bettingPeriodEnds < now);
         state = State.Revealing;
         revealPeriodEnds = now + revealPeriodLength;
         e_RevealStarted(revealPeriodEnds);

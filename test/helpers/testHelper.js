@@ -7,25 +7,6 @@ function logGasUse(roundName, tran, tx) {
     gasUseLog.push(  [roundName, tran, tx.receipt.gasUsed ]);
 } //  logGasUse ()
 
-function parseRoundInfo(result) {
-  return {
-    state: result[0],
-    requiredBetAmount: result[1],
-    feePt: result[2].toNumber(),
-    ticketCountLimit: result[3].toNumber(),
-    revealPeriodLength: result[4].toNumber(),
-    ticketCount: result[5].toNumber(),
-    revealedCount: result[6].toNumber(),
-    feeAmount: result[7],
-    winnablePotAmount: result[8],
-    currentPotAmount: result[9],
-    winningTicket: result[10].toNumber(),
-    winningAddress: result[11],
-    winningNumber: result[12].toNumber(),
-    revealPeriodEnds: result[13].toNumber()
-  }
-}
-
 /* function unlockAccounts( accounts) { // it's for testnetwork but couldn't dedect if we are on testrpc so just doing it from commandline
     for (var i = 0; i < accounts.length; i++) {
         web3.personal.unlockAccount(accounts[i], "1234", 60000);
@@ -53,7 +34,6 @@ function expectThrow (promise) {
 
 
 module.exports = {
-    parseRoundInfo: parseRoundInfo,
     logGasUse: logGasUse,
     expectThrow: expectThrow
 }

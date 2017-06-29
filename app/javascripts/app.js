@@ -12,6 +12,7 @@ var moment = require('moment');
 var countdown = require('countdown');
 var FileSaver = require('file-saver');
 var Parse = require('parse');
+var LupiHelper = require('../javascripts/LupiHelper.js');
 
 var Lupi = contract(lupi_artifacts);
 var lupiManager = contract(lupiManager_artifacts);
@@ -225,6 +226,24 @@ window.App = {
         }
         document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
 
+        web3.eth.getBlockNumber(function(error, res) {
+            if (error) {
+                self.setStatus("<font color='red'>Error getting latest block; see log.</font>");
+                console.error("refreshUI().blockNumber() error", error);
+            } else {
+                document.getElementById("latestBlock").innerHTML = res;
+                web3.eth.getBlock( res, function(error, res) {
+                    if (error) {
+                        self.setStatus("<font color='red'>Error getting latest block data; see log.</font>");
+                        console.error("refreshUI().getBlock() error", error);
+                    } else {
+                        document.getElementById("blockTimeStamp").innerHTML = res.timestamp;
+                        document.getElementById("blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD/MMM/YYYY HH:mm:ss");
+                    }
+                });
+            }
+        }); // getBlockNumber()
+
         web3.eth.getBalance(account, function(error, res) {
             if (error) {
                 self.setStatus("<font color='red'>Error getting account balance; see log.</font>");
@@ -245,17 +264,20 @@ window.App = {
 
         gameInstance.getRoundInfo()
         .then( roundRes => {
-            var roundInfo = new App.RoundInfo(roundRes);
-            document.getElementById("winnablePotAmount").innerHTML = web3.fromWei(roundInfo.winnablePotAmount);
+            var roundInfo = new LupiHelper.RoundInfo(roundRes);
+            document.getElementById("currentPotAmount").innerHTML = web3.fromWei(roundInfo.currentPotAmount);
             document.getElementById("requiredBetAmount").innerHTML = web3.fromWei(roundInfo.requiredBetAmount);
             document.getElementById("ticketCount").innerHTML = roundInfo.ticketCount;
             document.getElementById("revealedCount").innerHTML = roundInfo.revealedCount;
             document.getElementById("unRevealedCount").innerHTML = roundInfo.ticketCount - roundInfo.revealedCount;
-            document.getElementById("ticketCountLimit1").innerHTML = roundInfo.ticketCountLimit;
-            document.getElementById("ticketCountLimit2").innerHTML = roundInfo.ticketCountLimit;
+            document.getElementById("ticketCountLimit").innerHTML = roundInfo.ticketCountLimit;
 
             document.getElementById("revealPeriodLength1").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
             document.getElementById("revealPeriodLength2").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
+            var bettingPeriodEndsText = roundInfo.ticketCountLimit == 0 ? "" : "when " + roundInfo.ticketCountLimit + " bets are placed";
+            bettingPeriodEndsText += roundInfo.ticketCountLimit !== 0 && roundInfo.bettingPeriodEnds != 0 ? " or " : "";
+            bettingPeriodEndsText += roundInfo.bettingPeriodEnds == 0 ? "" : "latest on " + moment.unix(roundInfo.bettingPeriodEnds).format("DD/MMM/YYYY HH:mm:ss");
+            document.getElementById("bettingPeriodEndsText").innerHTML = bettingPeriodEndsText;
             document.getElementById("revealPeriodEnds").innerHTML = moment.unix(roundInfo.revealPeriodEnds).format("DD/MMM/YYYY HH:mm:ss");
             document.getElementById("roundInfoDebug").innerHTML = JSON.stringify(roundInfo,null, 4);
             document.getElementById("winningNumber").innerHTML = roundInfo.winningNumber;
@@ -272,11 +294,13 @@ window.App = {
             var wonDiv = document.getElementById("wonDiv");
             var tiedDiv = document.getElementById("tiedDiv");
 
-            var guessingOpen = roundInfo.state == 0 && roundInfo.ticketCount < roundInfo.ticketCountLimit ;
-            var revealStart = roundInfo.state == 0 && roundInfo.ticketCount == roundInfo.ticketCountLimit;
+            var bettingOver = ( roundInfo.ticketCount == roundInfo.ticketCountLimit && roundInfo.ticketCountLimit != 0)
+                || ( roundInfo.bettingPeriodEnds <  moment().utc().unix()  && roundInfo.bettingPeriodEnds != 0);
+            var guessingOpen = roundInfo.state == 0 && !bettingOver;
+            var revealStart = roundInfo.state == 0 && bettingOver;
             var revealRunning = roundInfo.state == 1 && roundInfo.revealedCount < roundInfo.ticketCount;
             var revealOverNotAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount !== roundInfo.ticketCount &&
-                   roundInfo.revealPeriodEnds <  Date.now() /1000 ;
+                   roundInfo.revealPeriodEnds <  moment().utc().unix() ;
             var revealOverAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount == roundInfo.ticketCount;
             guessDiv.style.display =  guessingOpen ? "inline" : "none";
 
@@ -362,8 +386,8 @@ window.App = {
 
         gameInstance.getRoundInfo()
         .then( roundRes => {
-            roundInfo = new App.RoundInfo(roundRes);
-            salt = "0x" + self.toHexString( secureRandom(32, {type: 'Array'}));
+            roundInfo = new LupiHelper.RoundInfo(roundRes);
+            salt = "0x" + LupiHelper.toHexString( secureRandom(32, {type: 'Array'}));
             return gameInstance.sealBetForAddress(account.toString(), guess, salt);
         }).then( function(sealRes) {
             sealedBet = sealRes;
@@ -377,7 +401,7 @@ window.App = {
                     ticketId = tx.logs[0].args.ticketId.toNumber() ;
                     var status = "<font color='green'>Successful guess.";
                     try {
-                        var ticket = new App.Ticket(ticketId, guess, salt, account, false);
+                        var ticket = new LupiHelper.Ticket(ticketId, guess, salt, account, false);
                         var ticketStore;
                         ticketStore = JSON.parse( localStorage.getItem(gameInstance.address));
                         if (ticketStore == null ) {
@@ -405,6 +429,7 @@ window.App = {
                     placeBetButton.disabled = false;
                 }).catch(function(e) {
                     console.error("placeBet() error", e);
+                    self.refreshUI();
                     self.setStatus("<font color='red'>Error sending your guess; see log.</red>");
                     placeBetButton.disabled = false;
                 }); // placeBet()
@@ -510,7 +535,7 @@ window.App = {
         self.setStatus("Initiating transaction... (please wait)");
 
         web3.eth.estimateGas( {from: account, data: gameInstance.startRevealing.getData }, function(error, res) {
-            gasEstimate = res + 10000;
+            gasEstimate = res + 20000;
             gameInstance.startRevealing({from: account, gas: gasEstimate})
             .then( tx => {
                 if( tx.receipt.gasUsed == gasEstimate) {
@@ -518,7 +543,7 @@ window.App = {
                 }
                 return gameInstance.getRoundInfo();
             }).then( roundRes => {
-                var roundInfo = new App.RoundInfo(roundRes);
+                var roundInfo = new LupiHelper.RoundInfo(roundRes);
                 self.setStatus("<font color='green'>Reveal period started.</green>");
             }).catch(function(e) {
                 console.error("startRevealing() error", e);
@@ -533,7 +558,7 @@ window.App = {
         var ticketId = parseInt(document.getElementById("ticketId").value);
         var guess = parseInt(document.getElementById("revealGuess").value);
         var salt = document.getElementById("salt").value;
-        var ticket = new App.Ticket(ticketId, guess, salt, accountInput);
+        var ticket = new LupiHelper.Ticket(ticketId, guess, salt, accountInput);
 
         App.revealBet(gameInstance.address, ticket);
     },
@@ -583,7 +608,7 @@ window.App = {
 
         gameInstance.getRoundInfo()
         .then( res => {
-            roundInfo = new App.RoundInfo(res);
+            roundInfo = new LupiHelper.RoundInfo(res);
             web3.eth.estimateGas( {from: account, data: gameInstance.declareWinner.getData }, function(error, res) {
                 gasEstimate =  res + 10000 + roundInfo.ticketCountLimit * 1000;
                 gameInstance.declareWinner({from: account, gas: gasEstimate})
@@ -650,11 +675,13 @@ window.App = {
         var requiredBetAmount = web3.toWei( document.getElementById("requiredBetAmountInput").value, "ether" );
         var ticketCountLimit = parseInt(document.getElementById("ticketCountLimitInput").value);
         var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
+        var bettingPeriodLength = parseInt(document.getElementById("bettingPeriodLengthInput").value) * 60;
+        var bettingPeriodEnd = bettingPeriodLength == 0 ? 0 : bettingPeriodLength +  moment().utc().unix();
         var feePt = document.getElementById("feePtInput").value * 10000;
 
         //web3.eth.estimateGas( {from: account, data: lupiManagerInstance.createGame.getData }) + 10000;
         gasEstimate = 1200000;
-        lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, revealPeriodLength, feePt,
+        lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd, revealPeriodLength, feePt,
                  {from: account, gas: gasEstimate})
         .then( tx => {
             if( tx.receipt.gasUsed == gasEstimate) {
@@ -667,37 +694,6 @@ window.App = {
             self.setStatus("<font color='red'>Error while creating game; see log.</font>");
         });
     },
-
-    Ticket: function(ticketId, guess, salt, account, isRevealed) {
-        this.ticketId = ticketId;
-        this.guess = guess;
-        this.salt = salt;
-        this.account = account;
-        this.isRevealed = isRevealed;
-    }, // Ticket()
-
-    RoundInfo: function(result) {
-        this.state = result[0];
-        this.requiredBetAmount = result[1];
-        this.feePt = result[2].toNumber();
-        this.ticketCountLimit = result[3].toNumber();
-        this.revealPeriodLength = result[4].toNumber();
-        this.ticketCount = result[5].toNumber();
-        this.revealedCount = result[6].toNumber();
-        this.feeAmount = result[7];
-        this.winnablePotAmount = result[8];
-        this.currentPotAmount = result[9];
-        this.winningTicket = result[10].toNumber();
-        this.winningAddress = result[11];
-        this.winningNumber = result[12].toNumber();
-        this.revealPeriodEnds = result[13].toNumber();
-    },
-
-    toHexString: function(byteArray) {
-        return byteArray.map(function(byte) {
-            return ('0' + (byte & 0xFF).toString(16)).slice(-2);
-        }).join('')
-    }
 
 };
 

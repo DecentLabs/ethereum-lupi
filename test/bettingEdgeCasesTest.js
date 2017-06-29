@@ -1,5 +1,5 @@
 var lupi = artifacts.require("./Lupi.sol");
-var helper = new require('./helpers/helper.js');
+var helper = new require('./helpers/testHelper.js');
 var bettingHelper = new require('./helpers/bettingHelper.js');
 
 contract("Lupi betting edge case tests", accounts => {
@@ -60,15 +60,27 @@ contract("Lupi betting edge case tests", accounts => {
          });
     }); // shouldn't be able to refund when there is a winner
 
-    it("should be possible to call startRevealing when ticketCountLimit reached"); // all other tests relying on first reveal calling startRevealing
     it("shouldn't be able to placeBet with 0 number"); // assert VM exception
-    it("shouldn't be able to placeBet with negative number");
+    it("shouldn't be able to placeBet with negative number"); // assert VM exception
     it("shouldn't be able to placeBet with invalid betAmount"); // assert VM exception
-    it("shouldn't be able to placeBet after ticketCountLimit reached" ); // (assert VM exception))
     it("should be able to placeBet and revealBet for someone else");
-    it("shouldn't be able to startRevealing before ticketCountLimit reached"); // assert VM exception
-    it("shouldn't be able to declareWinner before ticketCountLimit reached "); // assert VM exception)
-    it("shouldn't be abel to refund when round is not closed yet"); // assert VM exception
-    it("shouldn't be able to payWinner when round not closed"); // assert VM exception
+
+    it("shouldn't be possible to placeBet after ticketCountLimit reached" ); // (assert VM exception))
+    it("shouldn't be possible to placeBet after bettingPeriodEnds" ); // (assert VM exception))
+
+    it("shouldn't be possible to startRevealing before bettingPeriodEnds");
+    it("should be possible to startRevealing after bettingPeriodEnds");
+    it("should be possible to reveal (w/o startRevealing) after bettingPeriodEnds");
+
+    it("shouldn't be possible to startRevealing before ticketCountLimit reached"); // assert VM exception
+    it("should be possible to startRevealing after ticketCountLimit reached"); // all other tests relying on first reveal calling startRevealing
+    it("should be possible to reveal (w/o startRevealing) after ticketCountLimit reached");
+
+    it("shouldn't be possible to declareWinner before all tickets revealed"); // assert VM exception)
+    it("should be possible to declareWinner when all tickets revealed");
+    it("should be possible to declareWinner after revealPeriodEnds and not all tickets revealed");
+
+    it("shouldn't be possible to refund when round is not closed"); // assert VM exception
+    it("shouldn't be possible to payWinner when round not closed"); // assert VM exception
 
 });
