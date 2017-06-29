@@ -5,7 +5,7 @@ var lupiHelper = new require('../app/javascripts/LupiHelper.js');
 var moment = require('moment');
 var BigNumber = require('bignumber.js');
 
-contract("LupiManager tests", accounts => {
+contract("LupiManager Admin tests", accounts => {
 
     it('should be possible to add a game', () => {
         var instance, gameIdx;
@@ -50,7 +50,8 @@ contract("LupiManager tests", accounts => {
         var feePt = 10000;
         var revealPeriodLength = 14400;
 
-        return lupiManager.new().then( res => {
+        return lupiManager.new()
+        .then( res => {
             instance = res;
             return instance.owner();
         }).then( res => {

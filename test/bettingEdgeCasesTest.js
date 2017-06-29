@@ -9,14 +9,16 @@ contract("Lupi betting edge case tests", accounts => {
     });
 
     it('should be possible to declareWinner without any bets revealed', done => {
-        // runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
-        //         betsToPlace, expWinningIdx, expWinningNumber [, toRevealCt || default: all ])
-        bettingHelper.runBettingTest("edge: no reveal", web3.toWei(1), 0, 10000, [2,4,5], 0, 0, 0)
+        bettingHelper.runBettingTest( { testCaseName: "edge: no reveal", ticketCountLimit: 3,
+            bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 0 })
         .then( res => { done(); });
     }); // should be possible to declareWinner without anybets revealed
 
     it("shouldn't be possible to refund a bet twice", done =>  {
-        bettingHelper.runBettingTest("edge: refund twice", web3.toWei(1), 0, 10000, [2,4,5], 1, 2)
+        bettingHelper.runBettingTest( { testCaseName: "edge: refund twice", ticketCountLimit: 3,
+            bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 })
         .then( res => {
             return helper.expectThrow( res.refund(1));
         }).then( res => {
@@ -25,7 +27,9 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be possible to refund a bet twice
 
     it("shouldn't be possible to pay a winner twice", done => {
-        bettingHelper.runBettingTest("edge: paywinner twice", web3.toWei(1), 0, 10000, [4,3,5], 2, 3)
+        bettingHelper.runBettingTest( { testCaseName: "edge: paywinner twice", ticketCountLimit: 3,
+            bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [4,3,5], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 3 })
         .then( res => {
             return helper.expectThrow( res.payWinner());
         }).then( res => {
@@ -34,7 +38,9 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be possible to pay a winner twice
 
     it("shouldn't be able to refund with invalid ticketId request", done =>  {
-        bettingHelper.runBettingTest("edge: refund invalid ticket", web3.toWei(1), 0, 10000, [2,4,5], 1, 2)
+        bettingHelper.runBettingTest( { testCaseName: "edge: refund invalid ticket", ticketCountLimit: 3,
+            bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 })
         .then( res => {
             return helper.expectThrow( res.refund(4));
         }).then( res => {
@@ -43,7 +49,10 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be able to refund with invalid ticketId request
 
     it("shouldn't be able to payWinner when there is no winner", done =>  {
-        bettingHelper.runBettingTest("edge: payWinner nowinner", web3.toWei(1), 0, 10000, [2,4,4,2], 0, 0)
+        bettingHelper.runBettingTest( { testCaseName: "edge: payWinner nowinner",
+            ticketCountLimit: 4, betsToPlace: [2,4,4,2], toRevealCt: 4,
+            expWinningIdx: 0, expWinningNumber: 0,
+            bettingPeriodLength: 0, revealPeriodLength: 0, feePt: 10000,  requiredBetAmount: web3.toWei(1)})
         .then( res => {
             return helper.expectThrow( res.payWinner());
         }).then( res => {
@@ -52,7 +61,10 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be able to payWinner when there is no winner
 
     it("shouldn't be able to refund when there is a winner", done =>  {
-        bettingHelper.runBettingTest("edge: refund winner", web3.toWei(1), 0, 10000, [2,4,2,5], 2, 4)
+        bettingHelper.runBettingTest( { testCaseName: "edge: refund winner",
+            ticketCountLimit: 4, betsToPlace: [2,4,2,5], toRevealCt: 4,
+            expWinningIdx: 2, expWinningNumber: 4,
+            bettingPeriodLength: 0, revealPeriodLength: 0, feePt: 10000,  requiredBetAmount: web3.toWei(1)})
         .then( res => {
             return helper.expectThrow( res.payWinner());
         }).then( res => {
@@ -68,17 +80,31 @@ contract("Lupi betting edge case tests", accounts => {
     it("shouldn't be possible to placeBet after ticketCountLimit reached" ); // (assert VM exception))
     it("shouldn't be possible to placeBet after bettingPeriodEnds" ); // (assert VM exception))
 
-    it("shouldn't be possible to startRevealing before bettingPeriodEnds"); // assert VM exception
-    it("should be possible to startRevealing after bettingPeriodEnds");
-    it("should be possible to reveal (w/o startRevealing) after bettingPeriodEnds");
+    // ticketCountLimit = 0 & bettingPeriodEnds is set
+    it("should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit")
+     /* TODO: need figure out how to test when bettingPeriodEnds , done =>  {
+        bettingHelper.runBettingTest( { testCaseName: "edge: startRevealing no ticketCountLimit",
+            ticketCountLimit: 0, betsToPlace: [2,4], toRevealCt: 0,
+            expWinningIdx: 0, expWinningNumber: 0,
+            bettingPeriodLength: 1, revealPeriodLength: 1, feePt: 10000,  requiredBetAmount: web3.toWei(1)})
+        .then( res => { done(); });
+    }); // should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit
+    */
+    it("should be possible to reveal (w/o startRevealing) after bettingPeriodEnds when there is no tickCountLimit");
 
-    it("shouldn't be possible to startRevealing before ticketCountLimit reached"); // assert VM exception
-    it("should be possible to startRevealing after ticketCountLimit reached");
-    it("should be possible to reveal (w/o startRevealing) after ticketCountLimit reached");
+    // both tickCountLimit & bettingPeriodEnds is set
+    it("should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet");
+    it("shouldn't be possible to startRevealing before ticketCountLimit reached and it's not bettingPeriodEnds yet"); // assert VM exception
+    it("shouldn't be possible to startRevealing before bettingPeriodEnds and ticketCountLimit is not reached yet"); // assert VM exception
 
-    it("shouldn't be possible to declareWinner before all tickets revealed"); // assert VM exception)
-    it("should be possible to declareWinner when all tickets revealed");
-    it("should be possible to declareWinner after revealPeriodEnds and not all tickets revealed");
+    // ticketCountLimit is set & bettingPeriodEnds = 0
+        // it's covered with most bettingTest.js testcases
+        // it("should be possible to startRevealing when ticketCountLimit reached"); // it's covered with most bettingTest.js testcases
+        // it("should be possible to reveal (w/o startRevealing) after ticketCountLimit reached"); // it's covered with most bettingTest.js testcases
+
+    it("should be possible to declareWinner before revealPeriodEnds when all tickets revealed");
+    it("should be possible to declareWinner after revealPeriodEnds when NOT all tickets revealed");
+    it("shouldn't be possible to declareWinner before revaelPeriodEnds when not all tickets revealed"); // assert VM exception)
 
     it("shouldn't be possible to refund when round is not closed"); // assert VM exception
     it("shouldn't be possible to payWinner when round not closed"); // assert VM exception

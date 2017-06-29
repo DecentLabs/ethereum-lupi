@@ -89,9 +89,16 @@ contract("Lupi admin tests", accounts => {
             done();
         }); // expectThrow
     }); // ticketCount limit should be greater than 0
+    it("it shouldn't be possible to create a game with 0 revealPeriodLength"); // 0? or treshold?
 
     it('bettingPeriodEnd should be set if there is no ticketCountLimit');
     it('ticketCountLimit should be set if there is no bettingPeriodEnd');
     it('bettingPeriodEnd should be 0 or later than now');
+
+    it('should be possible to schedule startRevealing');
+    it('should be possible to schedule revealBet');
+    it('should be possible to schedule declareWinner');
+    it('should be possible to schedule payWinner');
+    it('should be possible to schedule refund');
 
 }); // contract("lupi")
