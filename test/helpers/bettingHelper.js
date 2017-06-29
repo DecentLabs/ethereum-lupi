@@ -138,21 +138,26 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
     }).then( res => {
         testHelper.logGasUse(roundName, "startRevealing()", "", res);
 
-        var result = 0;
-        if (toRevealCt != 0) {
+        return gameInstance.getRoundInfo();
+    }).then ( roundInfoRes => {
+        var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
+        assert.equal(roundInfo.state, "1", "Round state should be Revealing after startRevealing");
+        assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0 after startRevealing");
+        assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected");
+        assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected");
+        if (toRevealCt == 0) {
+            return;
+        } else {
             var revealBetActions = betsToPlace.slice(0, toRevealCt).map(_revealBetFn);
-            results = Promise.all( revealBetActions );
+            return Promise.all( revealBetActions );
         }
-        return result;
     }).then( res => {
         return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
         var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
-        assert.equal(roundInfo.state, "1", "Round state should be Revealing after first reveal / startRevealing");
+        assert.equal(roundInfo.state, "1", "Round state should be Revealing after reveals");
         assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set after last bet revealed");
         assert.equal(roundInfo.revealedCount, toRevealCt, "revealedCount should be set after last bet revealed");
-        assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected");
-        assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected");
         assert.equal(roundInfo.winningTicket, 0 , "The winningTicket should be yet 0 after revealBets()");
         assert.equal(roundInfo.winningNumber, 0, "The winningNumber should be yet 0 after revealBets()");
         assert.equal(roundInfo.winningAddress, 0, "The winningAddress should be yet 0 after revealBets()");
