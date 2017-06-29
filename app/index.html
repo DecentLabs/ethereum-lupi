@@ -95,20 +95,47 @@
                         </div> <!-- additionalRevealDiv -->
                         <br><span id="revealedCount">?</span> revealed from <span id="ticketCountLimit">?</span>
                         <div id="ticketsToRevealDiv">
-                        <h3>Your tickets </h3>
-                        <div id="ticketsListDiv">
-                        </div>  <!-- ticketsListDiv -->
+                          <h3>Your tickets </h3>
+                          <div id="ticketsListDiv">
+                          </div>  <!-- ticketsListDiv -->
                         </div> <!-- ticketsToRevealDiv -->
-                        <div id="revealManualDiv" style="display:none">
-                            <h4>Ticket info to reveal:</h4>
-                            <label for="accountInput">Account:</label><input type="text" id="accountInput" style="width: auto;" size="66" maxlength="42" placeholder="0x0...."></input>
-                            <br><label for="ticketId">Ticket id:</label><input type="text" id="ticketId" style="width: auto;" size="10" placeholder="ticket id"></input>
-                            <br><label for="salt">Secret key:</label><input type="text" id="salt" style="width: auto;" size="66" maxlength="66" placeholder="0x0...."></input>
-                            <br><label for="revealGuess">Guess:</label><input type="text" id="revealGuess" style="width: auto;" size="10" placeholder=""></input>
-                            <br><br><button id="send" onclick="App.manualRevealBet()" class="btn btn-primary">Reveal ticket</button>
+
+                        <a id="toggleManualRevealText" href="#revealManualDiv" data-toggle="collapse" class="btn btn-default">
+                          <i class="material-icons">create</i>
+                          Enter ticket info manually
+                        </a>
+                        <div id="revealManualDiv" class="collapse">
+                          <h4>Ticket info to reveal:</h4>
+                          <div class="form-group">
+                            <label for="accountInput" class="col-md-3 control-label">Account:</label>
+                            <div class="col-md-9">
+                              <input type="text" id="accountInput" placeholder="0x0...." class="input-lg form-control"></input>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <label for="ticketId" class="col-md-3 control-label">Ticket id:</label>
+                            <div class="col-md-9">
+                              <input type="text" id="ticketId" placeholder="ticket id" class="input-lg form-control"></input>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <label for="salt" class="col-md-3 control-label">Secret key:</label>
+                            <div class="col-md-9">
+                              <input type="text" id="salt" placeholder="0x0...." class="input-lg form-control"></input>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <label for="revealGuess" class="col-md-3 control-label">Guess:</label>
+                            <div class="col-md-9">
+                              <input type="number" id="revealGuess" placeholder="" class="input-lg form-control" autocomplete="off"></input>
+                            </div>
+                          </div>
+
+                          <button id="send" onclick="App.manualRevealBet()" class="btn btn-primary">Reveal ticket</button>
                         </div> <!-- revealManualDiv -->
-                        <br><a id="toggleManualRevealText" href="javascript:App.toggleManualReveal();">Enter ticket info manually >></a>
-                        <br>
                     </div>
                 </div>
             </div> <!-- revealDiv -->
