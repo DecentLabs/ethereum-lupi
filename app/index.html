@@ -146,7 +146,7 @@
                 <br>with the number: <span id="winningNumber"></span>
                 <div id="payWinnerDiv" style="display:none">
                     <br>Request payout to winner (anybody can initiate it :) )
-                    <br><br><button id="send" onclick="App.payWinner()">Pay winner</button>
+                    <br><br><button id="send" onclick="App.payWinner()" class="btn btn-default">Pay winner</button>
                     <br>
                 </div> <!-- payWinnerdiv -->
                 <div id="winnerAlreadyPayedDiv" style="display:none">
@@ -161,7 +161,7 @@
                 <br>All bets (less fees) can be refunded to players by request.
                 <div id="refundPlayerDiv" style="display:inline">
                     <br><label for="refundTicketId">Ticket id:</label><input type="number" id="refundTicketId" placeholder="ticket Id"></input>
-                    <br><br><button id="send" onclick="App.refund()">Refund ticket</button>
+                    <br><br><button id="send" onclick="App.refund()" class="btn btn-default">Refund ticket</button>
                 </div>  <!-- refundPlayerDiv -->
                 <!-- TODO:  <div id="playerAlreadyRefundedDiv" style="display:none">
                   <br>All your tickets have been refunded already
