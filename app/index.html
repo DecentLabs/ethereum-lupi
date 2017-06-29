@@ -28,14 +28,13 @@
 <body>
 <div id="mainDiv" class="container">
 
-    <div class='page-header' id='banner'>
-        <h1>
-            Million Number Game
-            <small class="pull-right">Guess the smallest unique number</small>
-        </h1>
-    </div>
+  <div class="jumbotron">
+    <h1>Million Number Game</h1>
+    <p>Guess the smallest unique number.</p>
+    <p><a class="btn btn-primary btn-lg" href="https://github.com/DecentLabs/ethereum-lupi/blob/master/README.md" target="_blank">Learn more</a></p>
+  </div>
 
-    <div id="status"></div>
+  <div id="status"></div>
 
     <div class="row">
 
@@ -68,7 +67,7 @@
                         <h3>Current winnable amount: <strong><span id="currentPotAmount">?</span> ETH</strong></h3>
                         <div class="form-group">
                             <label for="guess" class="control-label">Your guess</label>
-                            <input type="text" class="form-control input-lg" id="guess" style="width: 4em">
+                            <input type="text" class="form-control input-lg" id="guess" style="width: 4em" autocomplete="off">
                             <span class="help-block">Enter a positive integer</span>
                         </div>
                         <h4><span id="ticketCount"></span> guesses placed so far</h4>
@@ -96,7 +95,7 @@
                         </div> <!-- additionalRevealDiv -->
                         <br><span id="revealedCount">?</span> revealed from <span id="ticketCountLimit">?</span>
                         <div id="ticketsToRevealDiv">
-                        <br><strong>Your tickets </strong><br>
+                        <h3>Your tickets </h3>
                         <div id="ticketsListDiv">
                         </div>  <!-- ticketsListDiv -->
                         </div> <!-- ticketsToRevealDiv -->
@@ -174,80 +173,177 @@
         </div> <!-- Col 1 -->
 
         <div class="col-xs-12 col-md-4">
-            <div id="learnMoreDiv">
-                <br><a href="https://github.com/DecentLabs/ethereum-lupi/blob/master/README.md" target="_blank">Learn more about the game</a>
-            </div>  <!--learnMoreDiv -->
+          <div class="panel panel-default">
+            <div class="panel-heading">
+                <h2 class="panel-title">My bets</h2>
+            </div>
+            <div class="panel-body">
+              <a id="subscribeAlertText" href="#subscribeAlertDiv" class="btn btn-default" data-toggle="collapse">
+                <i class="material-icons">notifications</i>
+                Alert me before revealing
+              </a>
 
-            <a id="subscribeAlertText" href="javascript:App.toggleSubscribeAlert();">Get notified when you need to reveal >></a>
-            <div id="subscribeAlertDiv" style="display: none">
-                <h2>Subscribe alerts</h2>
-                <br>Get notified when a reveal period or a new games starts<br>
-                <br><label for="emailInput">Email:</label><input type="text" id="emailInput" style="width: auto;" size="35" placeholder="your@email.com"></input>
-                <br><br><button id="subscribeButton" onclick="App.subscribeAlert()">Notify me</button>
-                <br><span class="hint">Note: It's an experimental feature, no guarantee that alerts will be sent out.</span>
-                <hr>
-            </div> <!-- subscribeAlertDiv -->
-
-            <div id="backUpAndRestoreDiv">
-                <div class="panel-heading">
-                    <h2 class="panel-title">Backup your tickets</h2>
-                </div>
-                <div class="panel-body">
-                    <div id="backupDiv" style="display: none">
-                        <p><a href='#self' onclick='App.exportTickets(); return false;'>Download your tickets</a> for backup</p>
-                    </div> <!--backupDiv -->
-                    <div id="restoreDiv" style="display: block">
-                        <p>Restore tickets: <input type="file" onchange='App.importTickets(this)' accept=".json"></a></p>
-                    </div> <!-- restoreDiv -->
-                <div>
-            </div> <!-- backUpAndRestoreDiv -->
-
-            <a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug info >></a>
-            <div id="massageDiv" style="display:none">
-                <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
-
-                <h2>Debug massage</h2>
-                <br>Your account: <span id="accountAddress">?</span>
-                <br>Your a/c balance: <span id="accountBalance">?</span> ether
-                <br>LupiManager address: <span id="lupiManagerAddress">?</span>
-                <br>LupiManager owner: <span id="lupiManagerOwner">?</span>
-                <br>Games count: <span id="gamesCount">?</span>
-                <br>Selected game idx: <span id="gameIdx">?</span>
-                <br>Game contract address: <span id="contractAddress">?</span>
-                <br>Game contract owner: <span id="contractOwner">?</span>
-                <br>Game contract balance: <span id="contractBalance">?</span>
-                <br>Latest block: <span id="latestBlock">?</span>
-                <br>Block timestamp: <span id="blockTimeStamp">?</span> (<span id="blockTimeStampFormatted">?</span>)
-                <br>
-                <br><span id="roundInfoDebug"></span>
-
-                <div id="revealStartOnlyDiv" style="display:none">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h2 class="panel-title">Start reveal period</h2>
-                        </div>
-                        <div class="panel-body">
-                            Start the reveal period withouth a reveal (anybody can initiate it).
-                            <p>Reveal period will be <span id="revealPeriodLength2">?</span></p>
-                            <button id="send" onclick="App.startRevealing()" class="btn btn-default">Start revealing</button>
-                        </div>
+              <div id="subscribeAlertDiv" class="collapse">
+                  <p>Get notified when a reveal period or a new games starts<p>
+                    <div class="form-group">
+                      <label for="emailInput" class="col-md-3 control-label">Email:</label>
+                      <div class="col-md-9">
+                        <input type="text" id="emailInput" placeholder="your@email.com" class="form-control"></input>
+                      </div>
                     </div>
-                </div> <!-- revealStartOnlyDiv -->
+                  <button id="subscribeButton" onclick="App.subscribeAlert()" class="btn btn-default pull-right">Turn on alerts</button>
+                  <hr>
+              </div> <!-- subscribeAlertDiv -->
 
-                <div id="createGameDiv">
-                    <h3>Create new game</h3>
-                    <br>only by owner<br>
-                    <br><label for="requiredBetAmountInput">Bet amount:</label><input type="number" id="requiredBetAmountInput" style="width: auto;" size="10" placeholder=""></input> ether
-                    <br><label for="ticketCountLimitInput">Ticket limit:</label><input type="number" id="ticketCountLimitInput" style="width: auto;" size="10" placeholder=""></input>
-                    <br><label for="bettingPeriodLengthInput">Betting period length:</label><input type="number" id="bettingPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
-                    <br><label for="revealPeriodLengthInput">Reveal period:</label><input type="number" id="revealPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
-                    <br><label for="feePtInput">fee:</label><input type="number" id="feePtInput" placeholder="" style="width: auto;" size="5" maxlength="5"></input> %
-                    <br><br><button id="send" onclick="App.createGame()">Create new game</button>
-                    <hr>
-                </div> <!-- createGameDiv -->
-            </div> <!-- massageDiv -->
+              <div id="backUpAndRestoreDiv">
+                <div id="backupDiv" style="display: none">
+                  <a href='#self' onclick='App.exportTickets(); return false;' class="btn btn-default">
+                    <i class="material-icons">backup</i>
+                    Download my tickets
+                  </a>
+                </div>
+
+                <!--backupDiv -->
+                <div id="restoreDiv" style="display: block">
+                  <div class="form-group">
+                    <label class="control-label" for="inputFile2">Already placed a bet?  Import your ticket(s) from other devices.</label>
+                    <input type="file" id="inputFile2" multiple="" onchange='App.importTickets(this)' accept=".json">
+                    <input type="text" readonly="" class="form-control" placeholder="Browse...">
+                  </div>
+                </div> <!-- restoreDiv -->
+              </div> <!-- backUpAndRestoreDiv -->
+            </div> <!-- backUpAndRestoreDiv -->
         </div> <!-- Col 2 -->
+      </div> <!-- mainDiv -->
+  </div>
 
-    </div> <!-- mainDiv -->
+
+<div id="massageDiv" style="display:none">
+  <div class="container">
+    <div class="panel">
+      <div class="panel-heading">
+          <h2 class="panel-title">Debug log</h2>
+      </div>
+      <div class="panel-body">
+          <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+          <br>Your account: <span id="accountAddress">?</span>
+          <br>Your a/c balance: <span id="accountBalance">?</span> ether
+          <br>LupiManager address: <span id="lupiManagerAddress">?</span>
+          <br>LupiManager owner: <span id="lupiManagerOwner">?</span>
+          <br>Games count: <span id="gamesCount">?</span>
+          <br>Selected game idx: <span id="gameIdx">?</span>
+          <br>Game contract address: <span id="contractAddress">?</span>
+          <br>Game contract owner: <span id="contractOwner">?</span>
+          <br>Game contract balance: <span id="contractBalance">?</span>
+          <br>Latest block: <span id="latestBlock">?</span>
+          <br>Block timestamp: <span id="blockTimeStamp">?</span> (<span id="blockTimeStampFormatted">?</span>)
+          <br>
+          <br><span id="roundInfoDebug"></span>
+
+          <div id="revealStartOnlyDiv" style="display:none">
+              <div class="panel panel-default">
+                  <div class="panel-heading">
+                      <h2 class="panel-title">Start reveal period</h2>
+                  </div>
+                  <div class="panel-body">
+                      Start the reveal period withouth a reveal (anybody can initiate it).
+                      <p>Reveal period will be <span id="revealPeriodLength2">?</span></p>
+                      <button id="send" onclick="App.startRevealing()" class="btn btn-default">Start revealing</button>
+                  </div>
+              </div>
+          </div> <!-- revealStartOnlyDiv -->
+        </div>
+      </div>
+  </div> <!-- massageDiv -->
+</div>
+
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-4">
+          <ul class="list-inline">
+            <li><a href="#">About the game</a></li>
+          </ul>
+        </div>
+        <div class="col-xs-8 text-right">
+          <ul class="list-inline">
+            <li><a href="#createGameDivModal" data-toggle="modal">Create new game</a></li>
+            <li>|</li>
+            <li><a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug console</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+  <div class="modal fade" tabindex="-1" role="dialog" id="createGameDivModal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">Create new game</h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-horizontal">
+            <div class="form-group">
+              <label for="requiredBetAmountInput" class="col-md-3 control-label">Bet amount:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="requiredBetAmountInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">Ether</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ticketCountLimitInput" class="col-md-3 control-label">Ticket limit:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="ticketCountLimitInput" placeholder="" class="input-lg form-control"></input>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="bettingPeriodLengthInput" class="col-md-3 control-label">Betting period length:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="bettingPeriodLengthInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">minutes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="revealPeriodLengthInput" class="col-md-3 control-label">Reveal period:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="revealPeriodLengthInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">minutes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="feePtInput" class="col-md-3 control-label">Fee:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="feePtInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">%</div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button id="send" onclick="App.createGame()" class="btn btn-primary">Create new game</button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+
+
 </body>
 </html>
