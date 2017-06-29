@@ -96,7 +96,9 @@ contract Lupi is owned {
         require(tickets.length < ticketCountLimit + 1 || ticketCountLimit == 0);
         ticket = tickets.push(Ticket(msg.sender, msg.value, _secretBet, 0)) - 1;
         e_BetPlaced(msg.sender, ticket);
-        ticket = 1;
+        if(  ticketCountLimit == tickets.length -1 && ticketCountLimit != 0 ) {
+            startRevealing();
+        }
         return ticket;
     }
 

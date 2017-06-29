@@ -47,13 +47,17 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
              bet.encryptedBet = sealRes;
              return gameInstance.placeBet(sealRes, {from: bet.playerAddress, value: bet.amount})
          }).then( tx => {
-             bet.ticketId = tx.logs[0].args.ticketId.toNumber() ;
-             assert.equal(tx.logs[0].event, "e_BetPlaced", "e_BetPlaced event should be emmitted");
-             assert.equal(tx.logs[0].args.player, bet.playerAddress, "playerAddress should be set in e_BetPlaced event");
-             //assert.equal(tx.logs[0].args.ticketId, ??, "ticketId should be set in e_BetPlaced event");
-
-             testHelper.logGasUse(roundName, "placeBet()", "ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
-             return tx;
+            bet.ticketId = tx.logs[0].args.ticketId.toNumber();
+            testHelper.logGasUse(roundName, "placeBet()", "ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
+            assert.equal(tx.logs[0].event, "e_BetPlaced", "e_BetPlaced event should be emmitted");
+            assert.equal(tx.logs[0].args.player, bet.playerAddress, "playerAddress should be set in e_BetPlaced event");
+            assert.equal(tx.logs[0].args.ticketId, bet.ticketId, "ticketId should be set in e_BetPlaced event");
+            if( tx.logs.length == 2 ) { // ticketCountLimit reached, last bet
+                assert.equal(tx.logs[1].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after last bet");
+                assert(tx.logs[1].args.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
+                assert(tx.logs[1].args.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
+            }
+            return tx;
          })
      )); // return new Promise
     }; _placeBetFn
@@ -65,7 +69,6 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
          .then( revealTx => {
              var revealedEventIdx = 0;
              if( revealTx.logs.length == 2 ) { // this is the first reveal
-                 //console.log(revealTx.logs[0].revealPeriodEnds, revealPeriodLength + revealStartTime);
                  assert.equal(revealTx.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after first reveal");
                  assert(revealTx.logs[0].args.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
                  assert(revealTx.logs[0].args.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
@@ -112,6 +115,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
             // playerAddress is ref to accounts[] (idx+1 to avoid pollutin owner ac with transaction fees)
             betsToPlace[i] = { number: betsToPlace[i], amount: requiredBetAmount, playerAddress: accounts[i+1], idx: i };
         }
+        revealStartTime = moment().utc().unix();
         var placeBetActions = betsToPlace.map(_placeBetFn);
         var placeBetResults = Promise.all( placeBetActions );
         return placeBetResults;
@@ -119,10 +123,15 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         return gameInstance.getRoundInfo();
     }).then( roundInfoRes => {
         var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
-        assert.equal(roundInfo.state, "0", "Round state should be still Betting after bet");
+        if( ticketCountLimit != 0) {
+            assert.equal(roundInfo.state, "1", "Round state should be Revealing after last bet if tickCountLimit reached");
+            assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected after last bet if tickCountLimit reached");
+            assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected after last bet if tickCountLimit reached");
+        } else {
+            assert.equal(roundInfo.state, "0", "Round state should be still Betting after bet if there is no tickCountLimit");
+        }
         assert.equal(roundInfo.ticketCount, betsToPlace.length, "ticketCount should be set");
         assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
-        assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0 before first reveal");
         var expFeeAmount = roundInfo.requiredBetAmount.times(roundInfo.feePt/1000000).times(roundInfo.ticketCount);
         var expCurrentPot = roundInfo.requiredBetAmount.times(roundInfo.ticketCount) - expFeeAmount;
         assert.equal(roundInfo.feeAmount.toString(), expFeeAmount.toString(), "feeAmount should be set");
@@ -132,16 +141,23 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
         assert.equal(contractBalance.toString(),
             contractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
             "contract should receive the requiredBetAmount");
-
-        revealStartTime = moment().utc().unix();
-        return gameInstance.startRevealing({from: defaultTxAccount});
+        if( ticketCountLimit == 0 ) {
+            return gameInstance.startRevealing({from: defaultTxAccount});
+        } else {
+            return;
+        }
     }).then( res => {
-        testHelper.logGasUse(roundName, "startRevealing()", "", res);
+        if( ticketCountLimit == 0) {
+            testHelper.logGasUse(roundName, "startRevealing()", "", res);
+            assert.equal(res.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after startRevealing()");
+            assert(res.logs[0].args.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
+            assert(res.logs[0].args.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
+        }
 
         return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
         var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
-        assert.equal(roundInfo.state, "1", "Round state should be Revealing after startRevealing");
+        assert.equal(roundInfo.state, "1", "Round state should be Revealing after startRevealing or after all bets placed");
         assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0 after startRevealing");
         assert(roundInfo.revealPeriodEnds >  revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected");
         assert(roundInfo.revealPeriodEnds < revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected");
@@ -164,6 +180,7 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
 
         playerBalanceBefore = web3.eth.getBalance(playerAddress);
         contractBalanceBefore = web3.eth.getBalance(gameInstance.address);
+        // console.log("****** declareWinner", roundInfo.revealPeriodEnds, moment().utc().unix(), web3.eth.getBlock(web3.eth.blockNumber).timestamp);
         return gameInstance.declareWinner({ from: defaultTxAccount});
     }).then( tx => {
         testHelper.logGasUse(roundName, "declareWinner()", "", tx);
