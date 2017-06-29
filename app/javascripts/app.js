@@ -2,7 +2,7 @@
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-material-design/dist/css/bootstrap-material-design.css';
 import 'bootstrap-material-design/dist/css/ripples.css';
-// import "../stylesheets/app.css";
+import "../stylesheets/app.css";
 
 // Import libraries we need.
 import { default as Web3} from 'web3';
@@ -16,7 +16,9 @@ var countdown = require('countdown');
 var FileSaver = require('file-saver');
 var Parse = require('parse');
 var LupiHelper = require('../javascripts/LupiHelper.js');
-import $ from 'jquery';
+
+var $ = window.$ = require('jquery');
+require('bootstrap');
 require('bootstrap-material-design/dist/js/material.js');
 require('bootstrap-material-design/dist/js/ripples.js');
 
@@ -189,7 +191,7 @@ window.App = {
         	}
         else {
         	ele.style.display = "block";
-        	text.innerHTML = "Hide subscribe form <<";
+        	text.innerHTML = "Hide subscribe form";
         }
     },
 
@@ -198,11 +200,11 @@ window.App = {
         var text = document.getElementById("toggleDebugInfoText");
         if(ele.style.display == "block") {
         		ele.style.display = "none";
-        	text.innerHTML = "Show debug info >>";
+        	text.innerHTML = "Show debug info";
         	}
         else {
         	ele.style.display = "block";
-        	text.innerHTML = "Hide debug info <<";
+        	text.innerHTML = "Hide debug info";
         }
     },
 
@@ -701,6 +703,7 @@ window.App = {
             }
             self.setStatus('success', "Game created. Idx: " + tx.logs[2].args.gameIdx
             + " address: " + tx.logs[1].args.gameAddress);
+            $('#createGameDivModal').modal('hide');
             self.refreshUI();
         }).catch(function(e) {
             console.error("createGame() error", e);

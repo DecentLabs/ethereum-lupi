@@ -202,52 +202,137 @@
                 <div>
             </div> <!-- backUpAndRestoreDiv -->
 
-            <a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug info >></a>
-            <div id="massageDiv" style="display:none">
-                <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
-
-                <h2>Debug massage</h2>
-                <br>Your account: <span id="accountAddress">?</span>
-                <br>Your a/c balance: <span id="accountBalance">?</span> ether
-                <br>LupiManager address: <span id="lupiManagerAddress">?</span>
-                <br>LupiManager owner: <span id="lupiManagerOwner">?</span>
-                <br>Games count: <span id="gamesCount">?</span>
-                <br>Selected game idx: <span id="gameIdx">?</span>
-                <br>Game contract address: <span id="contractAddress">?</span>
-                <br>Game contract owner: <span id="contractOwner">?</span>
-                <br>Game contract balance: <span id="contractBalance">?</span>
-                <br>Latest block: <span id="latestBlock">?</span>
-                <br>Block timestamp: <span id="blockTimeStamp">?</span> (<span id="blockTimeStampFormatted">?</span>)
-                <br>
-                <br><span id="roundInfoDebug"></span>
-
-                <div id="revealStartOnlyDiv" style="display:none">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <h2 class="panel-title">Start reveal period</h2>
-                        </div>
-                        <div class="panel-body">
-                            Start the reveal period withouth a reveal (anybody can initiate it).
-                            <p>Reveal period will be <span id="revealPeriodLength2">?</span></p>
-                            <button id="send" onclick="App.startRevealing()" class="btn btn-default">Start revealing</button>
-                        </div>
-                    </div>
-                </div> <!-- revealStartOnlyDiv -->
-
-                <div id="createGameDiv">
-                    <h3>Create new game</h3>
-                    <br>only by owner<br>
-                    <br><label for="requiredBetAmountInput">Bet amount:</label><input type="number" id="requiredBetAmountInput" style="width: auto;" size="10" placeholder=""></input> ether
-                    <br><label for="ticketCountLimitInput">Ticket limit:</label><input type="number" id="ticketCountLimitInput" style="width: auto;" size="10" placeholder=""></input>
-                    <br><label for="bettingPeriodLengthInput">Betting period length:</label><input type="number" id="bettingPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
-                    <br><label for="revealPeriodLengthInput">Reveal period:</label><input type="number" id="revealPeriodLengthInput" style="width: auto;" size="10" placeholder=""></input> minutes
-                    <br><label for="feePtInput">fee:</label><input type="number" id="feePtInput" placeholder="" style="width: auto;" size="5" maxlength="5"></input> %
-                    <br><br><button id="send" onclick="App.createGame()">Create new game</button>
-                    <hr>
-                </div> <!-- createGameDiv -->
-            </div> <!-- massageDiv -->
         </div> <!-- Col 2 -->
+      </div> <!-- mainDiv -->
+  </div>
 
-    </div> <!-- mainDiv -->
+
+<div id="massageDiv" style="display:none">
+  <div class="container">
+    <div class="panel">
+      <div class="panel-heading">
+          <h2 class="panel-title">Debug log</h2>
+      </div>
+      <div class="panel-body">
+          <span class="hint"><strong>Hint:</strong> open the browser developer console to view any errors and warnings.</span>
+          <br>Your account: <span id="accountAddress">?</span>
+          <br>Your a/c balance: <span id="accountBalance">?</span> ether
+          <br>LupiManager address: <span id="lupiManagerAddress">?</span>
+          <br>LupiManager owner: <span id="lupiManagerOwner">?</span>
+          <br>Games count: <span id="gamesCount">?</span>
+          <br>Selected game idx: <span id="gameIdx">?</span>
+          <br>Game contract address: <span id="contractAddress">?</span>
+          <br>Game contract owner: <span id="contractOwner">?</span>
+          <br>Game contract balance: <span id="contractBalance">?</span>
+          <br>Latest block: <span id="latestBlock">?</span>
+          <br>Block timestamp: <span id="blockTimeStamp">?</span> (<span id="blockTimeStampFormatted">?</span>)
+          <br>
+          <br><span id="roundInfoDebug"></span>
+
+          <div id="revealStartOnlyDiv" style="display:none">
+              <div class="panel panel-default">
+                  <div class="panel-heading">
+                      <h2 class="panel-title">Start reveal period</h2>
+                  </div>
+                  <div class="panel-body">
+                      Start the reveal period withouth a reveal (anybody can initiate it).
+                      <p>Reveal period will be <span id="revealPeriodLength2">?</span></p>
+                      <button id="send" onclick="App.startRevealing()" class="btn btn-default">Start revealing</button>
+                  </div>
+              </div>
+          </div> <!-- revealStartOnlyDiv -->
+        </div>
+      </div>
+  </div> <!-- massageDiv -->
+</div>
+
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-4">
+          <ul class="list-inline">
+            <li><a href="#">About the game</a></li>
+          </ul>
+        </div>
+        <div class="col-xs-8 text-right">
+          <ul class="list-inline">
+            <li><a href="#createGameDivModal" data-toggle="modal">Create new game</a></li>
+            <li>|</li>
+            <li><a id="toggleDebugInfoText" href="javascript:App.toggleDebugInfo();">Show debug console</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+  <div class="modal fade" tabindex="-1" role="dialog" id="createGameDivModal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">Create new game</h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-horizontal">
+            <div class="form-group">
+              <label for="requiredBetAmountInput" class="col-md-3 control-label">Bet amount:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="requiredBetAmountInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">Ether</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ticketCountLimitInput" class="col-md-3 control-label">Ticket limit:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="ticketCountLimitInput" placeholder="" class="input-lg form-control"></input>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="bettingPeriodLengthInput" class="col-md-3 control-label">Betting period length:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="bettingPeriodLengthInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">minutes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="revealPeriodLengthInput" class="col-md-3 control-label">Reveal period:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="revealPeriodLengthInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">minutes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="feePtInput" class="col-md-3 control-label">Fee:</label>
+              <div class="col-md-9">
+                <div class="input-group">
+                  <input type="number" id="feePtInput" placeholder="" class="input-lg form-control"></input>
+                  <div class="input-group-addon">%</div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button id="send" onclick="App.createGame()" class="btn btn-primary">Create new game</button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+
+
 </body>
 </html>
