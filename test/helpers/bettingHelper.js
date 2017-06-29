@@ -134,19 +134,18 @@ function runBettingTest(roundName, requiredBetAmount, revealPeriodLength, feePt,
             "contract should receive the requiredBetAmount");
 
         revealStartTime = moment().utc().unix();
-        var results;
-        if ( toRevealCt == 0 ) {
-            results = gameInstance.startRevealing({from: defaultTxAccount});
-        } else {
+        return gameInstance.startRevealing({from: defaultTxAccount});
+    }).then( res => {
+        testHelper.logGasUse(roundName, "startRevealing()", res);
+
+        var result = 0;
+        if (toRevealCt != 0) {
             var revealBetActions = betsToPlace.slice(0, toRevealCt).map(_revealBetFn);
             results = Promise.all( revealBetActions );
         }
-        return results;
-    }).then( revealTxs => {
-        if (toRevealCt == 0) {
-            testHelper.logGasUse(roundName, "startRevealing()", revealTxs);
-        }
-       return gameInstance.getRoundInfo();
+        return result;
+    }).then( res => {
+        return gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
         var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         assert.equal(roundInfo.state, "1", "Round state should be Revealing after first reveal / startRevealing");

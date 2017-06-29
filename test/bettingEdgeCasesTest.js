@@ -68,12 +68,12 @@ contract("Lupi betting edge case tests", accounts => {
     it("shouldn't be possible to placeBet after ticketCountLimit reached" ); // (assert VM exception))
     it("shouldn't be possible to placeBet after bettingPeriodEnds" ); // (assert VM exception))
 
-    it("shouldn't be possible to startRevealing before bettingPeriodEnds");
+    it("shouldn't be possible to startRevealing before bettingPeriodEnds"); // assert VM exception
     it("should be possible to startRevealing after bettingPeriodEnds");
     it("should be possible to reveal (w/o startRevealing) after bettingPeriodEnds");
 
     it("shouldn't be possible to startRevealing before ticketCountLimit reached"); // assert VM exception
-    it("should be possible to startRevealing after ticketCountLimit reached"); // all other tests relying on first reveal calling startRevealing
+    it("should be possible to startRevealing after ticketCountLimit reached");
     it("should be possible to reveal (w/o startRevealing) after ticketCountLimit reached");
 
     it("shouldn't be possible to declareWinner before all tickets revealed"); // assert VM exception)
