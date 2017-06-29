@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
   entry: './app/javascripts/app.js',
@@ -11,14 +12,22 @@ module.exports = {
     // Copy our app's index.html to the build folder.
     new CopyWebpackPlugin([
       { from: './app/index.html', to: "index.html" }
-    ])
+    ]),
+    new webpack.ProvidePlugin({
+        $: "jquery",
+        jQuery: "jquery"
+    })
   ],
   module: {
     rules: [
       {
        test: /\.css$/,
        use: [ 'style-loader', 'css-loader' ]
-      }
+     },
+     {
+       test: /\.(ttf|eot|woff|woff2|svg)/,
+       use: ['file-loader'],
+     }
     ],
     loaders: [
       { test: /\.json$/, use: 'json-loader' },

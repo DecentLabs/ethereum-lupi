@@ -44,6 +44,7 @@ The winner is the player who picked the lowest number that nobody else has picke
 ### Concept, initial version
 * [phraktle](https://github.com/phraktle)
 * [szerintedmi](https://github.com/szerintedmi)
+* [peterzen](https://github.com/peterzen)
 
 ## Licence
 This project is licensed under the GNU General Public License v3.0 license - see the [LICENSE](LICENSE) file for details.
