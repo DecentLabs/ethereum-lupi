@@ -32,9 +32,9 @@
     <h1>Million Number Game</h1>
     <p>Guess the smallest unique number.</p>
     <p><a class="btn btn-primary btn-lg" href="https://github.com/DecentLabs/ethereum-lupi/blob/master/README.md" target="_blank">Learn more</a></p>
-    </div>
+  </div>
 
-    <div id="status"></div>
+  <div id="status"></div>
 
     <div class="row">
 
@@ -95,7 +95,7 @@
                         </div> <!-- additionalRevealDiv -->
                         <br><span id="revealedCount">?</span> revealed from <span id="ticketCountLimit">?</span>
                         <div id="ticketsToRevealDiv">
-                        <br><strong>Your tickets </strong><br>
+                        <h3>Your tickets </h3>
                         <div id="ticketsListDiv">
                         </div>  <!-- ticketsListDiv -->
                         </div> <!-- ticketsToRevealDiv -->
@@ -173,30 +173,46 @@
         </div> <!-- Col 1 -->
 
         <div class="col-xs-12 col-md-4">
-            <a id="subscribeAlertText" href="javascript:App.toggleSubscribeAlert();">Get notified when you need to reveal >></a>
-            <div id="subscribeAlertDiv" style="display: none">
-                <h2>Subscribe alerts</h2>
-                <br>Get notified when a reveal period or a new games starts<br>
-                <br><label for="emailInput">Email:</label><input type="text" id="emailInput" style="width: auto;" size="35" placeholder="your@email.com"></input>
-                <br><br><button id="subscribeButton" onclick="App.subscribeAlert()">Notify me</button>
-                <br><span class="hint">Note: It's an experimental feature, no guarantee that alerts will be sent out.</span>
-                <hr>
-            </div> <!-- subscribeAlertDiv -->
+          <div class="panel panel-default">
+            <div class="panel-heading">
+                <h2 class="panel-title">My bets</h2>
+            </div>
+            <div class="panel-body">
+              <a id="subscribeAlertText" href="#subscribeAlertDiv" class="btn btn-default" data-toggle="collapse">
+                <i class="material-icons">notifications</i>
+                Alert me before revealing
+              </a>
 
-            <div id="backUpAndRestoreDiv">
-                <div class="panel-heading">
-                    <h2 class="panel-title">Backup your tickets</h2>
+              <div id="subscribeAlertDiv" class="collapse">
+                  <p>Get notified when a reveal period or a new games starts<p>
+                    <div class="form-group">
+                      <label for="emailInput" class="col-md-3 control-label">Email:</label>
+                      <div class="col-md-9">
+                        <input type="text" id="emailInput" placeholder="your@email.com" class="form-control"></input>
+                      </div>
+                    </div>
+                  <button id="subscribeButton" onclick="App.subscribeAlert()" class="btn btn-default pull-right">Turn on alerts</button>
+                  <hr>
+              </div> <!-- subscribeAlertDiv -->
+
+              <div id="backUpAndRestoreDiv">
+                <div id="backupDiv" style="display: none">
+                  <a href='#self' onclick='App.exportTickets(); return false;' class="btn btn-default">
+                    <i class="material-icons">backup</i>
+                    Download my tickets
+                  </a>
                 </div>
-                <div class="panel-body">
-                    <div id="backupDiv" style="display: none">
-                        <p><a href='#self' onclick='App.exportTickets(); return false;'>Download your tickets</a> for backup</p>
-                    </div> <!--backupDiv -->
-                    <div id="restoreDiv" style="display: block">
-                        <p>Restore tickets: <input type="file" onchange='App.importTickets(this)' accept=".json"></a></p>
-                    </div> <!-- restoreDiv -->
-                <div>
-            </div> <!-- backUpAndRestoreDiv -->
 
+                <!--backupDiv -->
+                <div id="restoreDiv" style="display: block">
+                  <div class="form-group">
+                    <label class="control-label" for="inputFile2">Already placed a bet?  Import your ticket(s) from other devices.</label>
+                    <input type="file" id="inputFile2" multiple="" onchange='App.importTickets(this)' accept=".json">
+                    <input type="text" readonly="" class="form-control" placeholder="Browse...">
+                  </div>
+                </div> <!-- restoreDiv -->
+              </div> <!-- backUpAndRestoreDiv -->
+            </div> <!-- backUpAndRestoreDiv -->
         </div> <!-- Col 2 -->
       </div> <!-- mainDiv -->
   </div>
