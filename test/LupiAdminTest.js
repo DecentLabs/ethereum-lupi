@@ -35,8 +35,8 @@ contract("Lupi admin tests", accounts => {
             assert.equal(roundInfo.ticketCount, 0, "ticketCount should be 0");
             assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
             assert.equal(roundInfo.feeAmount, 0, "feeAmount should be 0");
-            var expWinnablePotAmount = requiredBetAmount.times(ticketCountLimit).times( 1 - feePt / 1000000);
-            assert.equal(roundInfo.winnablePotAmount.toString(), expWinnablePotAmount.toString(), "winnablePotAmount should be set");
+            var expGuaranteedPotAmount = requiredBetAmount.times(ticketCountLimit).times( 1 - feePt / 1000000);
+            assert.equal(roundInfo.guaranteedPotAmount.toString(), expGuaranteedPotAmount.toString(), "guaranteedPotAmount should be set");
             assert.equal(roundInfo.currentPotAmount, 0, "currentPotAmount should be 0");
             assert.equal(roundInfo.winningTicket, 0, "winningTicket should be 0");
             assert.equal(roundInfo.winningAddress, 0, "winningAddress should be 0");

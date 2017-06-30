@@ -52,7 +52,7 @@ contract Lupi is owned {
             State _state, uint _requiredBetAmount, uint _feePt, uint _ticketCountLimit, uint _bettingPeriodEnds, uint _revealPeriodLength,
             uint _ticketCount, uint _revealedCount,
             uint _feeAmount,
-            uint _winnablePotAmount,
+            uint _guaranteedPotAmount,
             uint _winningTicket,
             address _winningAddress,
             uint _winningNumber,
@@ -60,7 +60,7 @@ contract Lupi is owned {
         return ( state, requiredBetAmount, feePt, ticketCountLimit, bettingPeriodEnds, revealPeriodLength,
             tickets.length -1, revealedCount,
             getFeeAmount(),
-            getWinnablePotAmount(),
+            getGuaranteedPotAmount(),
             winningTicket,
             tickets[winningTicket].player,
             tickets[winningTicket].revealedBet,
@@ -71,13 +71,13 @@ contract Lupi is owned {
         return (tickets.length - 1) * requiredBetAmount * feePt / 1000000;
     }
 
-    function getWinnablePotAmount() constant returns (uint winnablePotAmount) {
-        if (ticketCountLimit == 0 ) {
-            winnablePotAmount = (tickets.length -1) * requiredBetAmount * (1000000 - feePt) / 1000000;
+    function getGuaranteedPotAmount() constant returns (uint guaranteedPotAmount) {
+        if (ticketCountLimit == 0 || bettingPeriodEnds != 0 ) {
+            guaranteedPotAmount = getCurrentPotAmount();
         } else {
-            winnablePotAmount = ticketCountLimit * requiredBetAmount * (1000000 - feePt) / 1000000;
+            guaranteedPotAmount = ticketCountLimit * requiredBetAmount * (1000000 - feePt) / 1000000;
         }
-        return winnablePotAmount;
+        return guaranteedPotAmount;
     }
 
     function getCurrentPotAmount() constant returns (uint currentPotAmount) {
@@ -183,7 +183,7 @@ contract Lupi is owned {
         require(ticket.deposit > 0);
         ticket.deposit = 0;
         // all money goes to winner
-        ticket.player.transfer(getWinnablePotAmount());
+        ticket.player.transfer(getCurrentPotAmount());
     }
 
     function refund(uint _ticket) {

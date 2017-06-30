@@ -23,7 +23,7 @@ function RoundInfo(result) {
     this.ticketCount = result[6].toNumber();
     this.revealedCount = result[7].toNumber();
     this.feeAmount = result[8];
-    this.winnablePotAmount = result[9];
+    this.guaranteedPotAmount = result[9];
     this.currentPotAmount = this.requiredBetAmount.times(this.ticketCount).minus(this.feeAmount) ;
     this.winningTicket = result[10].toNumber();
     this.winningAddress = result[11];

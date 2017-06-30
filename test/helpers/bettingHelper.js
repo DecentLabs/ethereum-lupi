@@ -162,8 +162,8 @@ function runBettingTest(testParams) {
         playerBalanceBefore = web3.eth.getBalance(playerAddress);
 
         var expFeeAmount = testParams.requiredBetAmount * testParams.feePt / 1000000 * testParams.ticketCountLimit;
-        var expWinnablePot = testParams.requiredBetAmount * testParams.ticketCountLimit - expFeeAmount;
-        assert.equal(roundInfo.winnablePotAmount.toString(), expWinnablePot.toString(), "new round winnablePotAmount should be set");
+        var expGuaranteedPot = testParams.requiredBetAmount * testParams.ticketCountLimit - expFeeAmount;
+        assert.equal(roundInfo.guaranteedPotAmount.toString(), expGuaranteedPot.toString(), "new round guaranteedPotAmount should be set");
 
         // betsToPlace transformed into a struct array  with playerAddress, encryptedBet  etc.
         for (var i = 0; i < testParams.betsToPlace.length ; i++){
@@ -189,10 +189,10 @@ function runBettingTest(testParams) {
         assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
         var expFeeAmount = roundInfo.requiredBetAmount.times(testParams.feePt/1000000).times(roundInfo.ticketCount);
         var expCurrentPot = roundInfo.requiredBetAmount.times(roundInfo.ticketCount) - expFeeAmount;
-        var expWinnablePot = testParams.requiredBetAmount * testParams.betsToPlace.length - expFeeAmount;
+        var expGuaranteedPot = testParams.requiredBetAmount * testParams.betsToPlace.length - expFeeAmount;
         assert.equal(roundInfo.feeAmount.toString(), expFeeAmount.toString(), "feeAmount should be set");
         assert.equal(roundInfo.currentPotAmount.toString(), expCurrentPot.toString(), "new round currentPotAmount should be set");
-        assert.equal(roundInfo.winnablePotAmount.toString(), expWinnablePot.toString(), "new round winnablePotAmount should be set");
+        assert.equal(roundInfo.guaranteedPotAmount.toString(), expGuaranteedPot.toString(), "new round guaranteedPotAmount should be set");
         var gameContractBalance = web3.eth.getBalance(gameInstance.address);
         assert.equal(gameContractBalance.toString(),
             gameContractBalanceBefore.add(roundInfo.requiredBetAmount.times(roundInfo.ticketCount)).toString(),
@@ -285,12 +285,12 @@ function runBettingTest(testParams) {
         var gameContractBalance = web3.fromWei(web3.eth.getBalance(gameInstance.address)).toString();
         var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddress)).toString();
         assert.equal(gameOwnerBalance, web3.fromWei(gameOwnerBalanceBefore).toString(), "the owner balance should be the same after payWinner()");
-        assert.equal(gameContractBalance, web3.fromWei(gameContractBalanceBefore.minus(roundInfo.winnablePotAmount)).toString(), "the winnable pot should be deducted from contract balance after payWinner() or refund()");
+        assert.equal(gameContractBalance, web3.fromWei(gameContractBalanceBefore.minus(roundInfo.currentPotAmount)).toString(), "the current pot should be deducted from contract balance after payWinner() or refund()");
         if(testParams.expWinningNumber == 0 ) {
             assert.equal(playerBalance, web3.fromWei(playerBalanceBefore.add(testParams.requiredBetAmount).minus(testParams.requiredBetAmount * testParams.feePt / 1000000)).toString(),
                "the requiredBetAmount less fee should be sent to player after refund()");
         } else {
-            assert.equal(playerBalance, web3.fromWei(playerBalanceBefore.add(roundInfo.winnablePotAmount)).toString(), "the winnable pot should be sent to winner after payWinner()");
+            assert.equal(playerBalance, web3.fromWei(playerBalanceBefore.add(roundInfo.currentPotAmount)).toString(), "the current pot should be sent to winner after payWinner()");
         }
         return Promise.resolve(gameInstance);
     }); // return lupiManager.new...
