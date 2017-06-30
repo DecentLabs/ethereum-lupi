@@ -65,9 +65,9 @@
                     </div>
                     <div class="panel-body">
                         <h3>Current winnable amount: <strong><span id="currentPotAmount">?</span> ETH</strong></h3>
-                        <div class="form-group">
-                            <label for="guess" class="control-label">Your guess</label>
-                            <input type="text" class="form-control input-lg" id="guess" style="width: 4em" autocomplete="off">
+                        <h3>Your guess:</h3>
+                        <div class="form-group form-group-lg">
+                            <input type="text" class="form-control" id="guess" style="width: 4em" autocomplete="off">
                             <span class="help-block">Enter a positive integer</span>
                         </div>
                         <h4><span id="ticketCount"></span> guesses placed so far</h4>
@@ -95,20 +95,47 @@
                         </div> <!-- additionalRevealDiv -->
                         <br><span id="revealedCount">?</span> revealed from <span id="ticketCountLimit">?</span>
                         <div id="ticketsToRevealDiv">
-                        <h3>Your tickets </h3>
-                        <div id="ticketsListDiv">
-                        </div>  <!-- ticketsListDiv -->
+                          <h3>Your tickets </h3>
+                          <div id="ticketsListDiv">
+                          </div>  <!-- ticketsListDiv -->
                         </div> <!-- ticketsToRevealDiv -->
-                        <div id="revealManualDiv" style="display:none">
-                            <h4>Ticket info to reveal:</h4>
-                            <label for="accountInput">Account:</label><input type="text" id="accountInput" style="width: auto;" size="66" maxlength="42" placeholder="0x0...."></input>
-                            <br><label for="ticketId">Ticket id:</label><input type="text" id="ticketId" style="width: auto;" size="10" placeholder="ticket id"></input>
-                            <br><label for="salt">Secret key:</label><input type="text" id="salt" style="width: auto;" size="66" maxlength="66" placeholder="0x0...."></input>
-                            <br><label for="revealGuess">Guess:</label><input type="text" id="revealGuess" style="width: auto;" size="10" placeholder=""></input>
-                            <br><br><button id="send" onclick="App.manualRevealBet()" class="btn btn-primary">Reveal ticket</button>
+
+                        <a id="toggleManualRevealText" href="#revealManualDiv" data-toggle="collapse" class="btn btn-default">
+                          <i class="material-icons">create</i>
+                          Enter ticket info manually
+                        </a>
+                        <div id="revealManualDiv" class="collapse">
+                          <h4>Ticket info to reveal:</h4>
+                          <div class="form-group">
+                            <label for="accountInput" class="col-md-3 control-label">Account:</label>
+                            <div class="col-md-9">
+                              <input type="text" id="accountInput" placeholder="0x0...." class="input-lg form-control"></input>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <label for="ticketId" class="col-md-3 control-label">Ticket id:</label>
+                            <div class="col-md-9">
+                              <input type="text" id="ticketId" placeholder="ticket id" class="input-lg form-control"></input>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <label for="salt" class="col-md-3 control-label">Secret key:</label>
+                            <div class="col-md-9">
+                              <input type="text" id="salt" placeholder="0x0...." class="input-lg form-control"></input>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <label for="revealGuess" class="col-md-3 control-label">Guess:</label>
+                            <div class="col-md-9">
+                              <input type="number" id="revealGuess" placeholder="" class="input-lg form-control" autocomplete="off"></input>
+                            </div>
+                          </div>
+
+                          <button id="send" onclick="App.manualRevealBet()" class="btn btn-primary">Reveal ticket</button>
                         </div> <!-- revealManualDiv -->
-                        <br><a id="toggleManualRevealText" href="javascript:App.toggleManualReveal();">Enter ticket info manually >></a>
-                        <br>
                     </div>
                 </div>
             </div> <!-- revealDiv -->
@@ -146,7 +173,7 @@
                 <br>with the number: <span id="winningNumber"></span>
                 <div id="payWinnerDiv" style="display:none">
                     <br>Request payout to winner (anybody can initiate it :) )
-                    <br><br><button id="send" onclick="App.payWinner()">Pay winner</button>
+                    <br><br><button id="send" onclick="App.payWinner()" class="btn btn-default">Pay winner</button>
                     <br>
                 </div> <!-- payWinnerdiv -->
                 <div id="winnerAlreadyPayedDiv" style="display:none">
@@ -161,7 +188,7 @@
                 <br>All bets (less fees) can be refunded to players by request.
                 <div id="refundPlayerDiv" style="display:inline">
                     <br><label for="refundTicketId">Ticket id:</label><input type="number" id="refundTicketId" placeholder="ticket Id"></input>
-                    <br><br><button id="send" onclick="App.refund()">Refund ticket</button>
+                    <br><br><button id="send" onclick="App.refund()" class="btn btn-default">Refund ticket</button>
                 </div>  <!-- refundPlayerDiv -->
                 <!-- TODO:  <div id="playerAlreadyRefundedDiv" style="display:none">
                   <br>All your tickets have been refunded already
@@ -198,7 +225,7 @@
               <div id="backUpAndRestoreDiv">
                 <div id="backupDiv" style="display: none">
                   <a href='#self' onclick='App.exportTickets(); return false;' class="btn btn-default">
-                    <i class="material-icons">backup</i>
+                    <i class="material-icons">cloud_download</i>
                     Download my tickets
                   </a>
                 </div>
