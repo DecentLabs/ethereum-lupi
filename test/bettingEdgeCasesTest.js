@@ -4,21 +4,19 @@ var bettingHelper = new require('./helpers/bettingHelper.js');
 
 contract("Lupi betting edge case tests", accounts => {
 
-    before( function () {
-        bettingHelper.setAccounts(accounts);
-    });
-
     it('should be possible to declareWinner without any bets revealed', done => {
-        bettingHelper.runBettingTest( { testCaseName: "edge: no reveal", ticketCountLimit: 3,
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: no reveal", ticketCountLimit: 3,
             bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 0 })
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 0 });
+        bettingHelper.runBettingTest( testParams )
         .then( res => { done(); });
     }); // should be possible to declareWinner without anybets revealed
 
     it("shouldn't be possible to refund a bet twice", done =>  {
-        bettingHelper.runBettingTest( { testCaseName: "edge: refund twice", ticketCountLimit: 3,
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund twice", ticketCountLimit: 3,
             bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 })
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 });
+        bettingHelper.runBettingTest( testParams )
         .then( res => {
             return helper.expectThrow( res.refund(1));
         }).then( res => {
@@ -27,9 +25,10 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be possible to refund a bet twice
 
     it("shouldn't be possible to pay a winner twice", done => {
-        bettingHelper.runBettingTest( { testCaseName: "edge: paywinner twice", ticketCountLimit: 3,
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: paywinner twice", ticketCountLimit: 3,
             bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [4,3,5], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 3 })
+            feePt: 10000, betsToPlace: [4,3,5], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 3 });
+        bettingHelper.runBettingTest( testParams)
         .then( res => {
             return helper.expectThrow( res.payWinner());
         }).then( res => {
@@ -38,9 +37,10 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be possible to pay a winner twice
 
     it("shouldn't be able to refund with invalid ticketId request", done =>  {
-        bettingHelper.runBettingTest( { testCaseName: "edge: refund invalid ticket", ticketCountLimit: 3,
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund invalid ticket", ticketCountLimit: 3,
             bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 })
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 });
+        bettingHelper.runBettingTest( testParams)
         .then( res => {
             return helper.expectThrow( res.refund(4));
         }).then( res => {
@@ -49,10 +49,11 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be able to refund with invalid ticketId request
 
     it("shouldn't be able to payWinner when there is no winner", done =>  {
-        bettingHelper.runBettingTest( { testCaseName: "edge: payWinner nowinner",
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: payWinner nowinner",
             ticketCountLimit: 4, betsToPlace: [2,4,4,2], toRevealCt: 4,
             expWinningIdx: 0, expWinningNumber: 0,
-            bettingPeriodLength: 0, revealPeriodLength: 0, feePt: 10000,  requiredBetAmount: web3.toWei(1)})
+            bettingPeriodLength: 0, revealPeriodLength: 0, feePt: 10000, requiredBetAmount: web3.toWei(1)});
+        bettingHelper.runBettingTest( testParams)
         .then( res => {
             return helper.expectThrow( res.payWinner());
         }).then( res => {
@@ -61,10 +62,11 @@ contract("Lupi betting edge case tests", accounts => {
     }); // shouldn't be able to payWinner when there is no winner
 
     it("shouldn't be able to refund when there is a winner", done =>  {
-        bettingHelper.runBettingTest( { testCaseName: "edge: refund winner",
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund winner",
             ticketCountLimit: 4, betsToPlace: [2,4,2,5], toRevealCt: 4,
             expWinningIdx: 2, expWinningNumber: 4,
-            bettingPeriodLength: 0, revealPeriodLength: 0, feePt: 10000,  requiredBetAmount: web3.toWei(1)})
+            bettingPeriodLength: 0, revealPeriodLength: 0, feePt: 10000, requiredBetAmount: web3.toWei(1)});
+        bettingHelper.runBettingTest( testParams)
         .then( res => {
             return helper.expectThrow( res.payWinner());
         }).then( res => {
