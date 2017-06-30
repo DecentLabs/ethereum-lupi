@@ -400,7 +400,12 @@ window.App = {
         }).then( function(sealRes) {
             sealedBet = sealRes;
             web3.eth.estimateGas( {from: account, data: gameInstance.placeBet.getData}, function(error, res ) {
-                gasEstimate = res + 50000;
+                if (roundInfo.ticketCount == roundInfo.ticketCountLimit -1 ) {
+                    gasEstimate = res + 90000;
+                } else {
+                    gasEstimate = res + 50000;
+                }
+                console.log(res);
                 gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: gasEstimate})
                 .then( tx =>  {
                     if( tx.receipt.gasUsed == gasEstimate) {
