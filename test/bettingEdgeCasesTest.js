@@ -1,9 +1,80 @@
 var lupi = artifacts.require("./Lupi.sol");
 var helper = new require('./helpers/testHelper.js');
 var bettingHelper = new require('./helpers/bettingHelper.js');
+var moment = require('moment');
 
 contract("Lupi betting edge case tests", accounts => {
 
+    //*************************************************************
+    // placeBet
+    // ************************************************************
+    it("shouldn't be able to placeBet with 0 number"); // assert VM exception
+    it("shouldn't be able to placeBet with negative number"); // assert VM exception
+    it("shouldn't be able to placeBet with invalid betAmount"); // assert VM exception
+    it("should be able to placeBet and revealBet for someone else");
+
+    it("shouldn't be possible to placeBet after ticketCountLimit reached" ); // (assert VM exception))
+    it("shouldn't be possible to placeBet after bettingPeriodEnds" ); // (assert VM exception))
+
+    //*************************************************************
+    // ticketCountLimit = 0 & bettingPeriodEnds is set
+    // ************************************************************
+    it("should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit", done => {
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: startReveal 1",
+            ticketCountLimit: 0, bettingPeriodLength: 2, revealPeriodLength: 600,
+            requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 });
+        bettingHelper._createGame(testParams)
+        .then( res => {
+            //console.log(JSON.stringify(res.revealStartTime, null, 4));
+            return bettingHelper._placeBets(testParams);
+        }).then( res => {
+            var bettingPeriodEnds = moment().utc().unix() + testParams.bettingPeriodLength;
+            return helper.waitForTimeStamp(bettingPeriodEnds);
+        }).then( res => {
+            return bettingHelper._startRevealing(testParams);
+        }).then( res => {
+            done();
+        });
+    }); // should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit
+
+    it("should be possible to reveal (w/o startRevealing) after bettingPeriodEnds when there is no tickCountLimit");
+
+    //*************************************************************
+    // both tickCountLimit & bettingPeriodEnds is set
+    //*************************************************************
+    it("should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet", done => {
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: startReveal 2",
+            ticketCountLimit: 3, bettingPeriodLength: 2, revealPeriodLength: 600,
+            requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2,4], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 2 });
+        bettingHelper._createGame(testParams)
+        .then( res => {
+            //console.log(JSON.stringify(res.revealStartTime, null, 4));
+            return bettingHelper._placeBets(testParams);
+        }).then( res => {
+            var bettingPeriodEnds = moment().utc().unix() + testParams.bettingPeriodLength;
+            return helper.waitForTimeStamp(bettingPeriodEnds);
+        }).then( res => {
+            return bettingHelper._startRevealing(testParams);
+        }).then( res => {
+            done();
+        });
+    }); // should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet
+
+    it("shouldn't be possible to startRevealing before ticketCountLimit reached and it's not bettingPeriodEnds yet"); // assert VM exception
+    it("shouldn't be possible to startRevealing before bettingPeriodEnds and ticketCountLimit is not reached yet"); // assert VM exception
+
+    //*************************************************************
+    // ticketCountLimit is set & bettingPeriodEnds = 0
+    //*************************************************************
+        // it's covered with most bettingTest.js testcases
+        // it("should be possible to startRevealing when ticketCountLimit reached"); // it's covered with most bettingTest.js testcases
+        // it("should be possible to reveal (w/o startRevealing) after ticketCountLimit reached"); // it's covered with most bettingTest.js testcases
+
+    //*************************************************************
+    // declareWinner
+    //*************************************************************
     it('should be possible to declareWinner without any bets revealed', done => {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: no reveal", ticketCountLimit: 3,
             bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
@@ -12,6 +83,13 @@ contract("Lupi betting edge case tests", accounts => {
         .then( res => { done(); });
     }); // should be possible to declareWinner without anybets revealed
 
+    it("should be possible to declareWinner before revealPeriodEnds when all tickets revealed");
+    it("should be possible to declareWinner after revealPeriodEnds when NOT all tickets revealed");
+    it("shouldn't be possible to declareWinner before revaelPeriodEnds when not all tickets revealed"); // assert VM exception)
+
+    //*************************************************************
+    // Refund/payWinner
+    //*************************************************************
     it("shouldn't be possible to refund a bet twice", done =>  {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund twice", ticketCountLimit: 3,
             bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
@@ -73,40 +151,6 @@ contract("Lupi betting edge case tests", accounts => {
             done();
          });
     }); // shouldn't be able to refund when there is a winner
-
-    it("shouldn't be able to placeBet with 0 number"); // assert VM exception
-    it("shouldn't be able to placeBet with negative number"); // assert VM exception
-    it("shouldn't be able to placeBet with invalid betAmount"); // assert VM exception
-    it("should be able to placeBet and revealBet for someone else");
-
-    it("shouldn't be possible to placeBet after ticketCountLimit reached" ); // (assert VM exception))
-    it("shouldn't be possible to placeBet after bettingPeriodEnds" ); // (assert VM exception))
-
-    // ticketCountLimit = 0 & bettingPeriodEnds is set
-    it("should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit")
-     /* TODO: need figure out how to test when bettingPeriodEnds , done =>  {
-        bettingHelper.runBettingTest( { testCaseName: "edge: startRevealing no ticketCountLimit",
-            ticketCountLimit: 0, betsToPlace: [2,4], toRevealCt: 0,
-            expWinningIdx: 0, expWinningNumber: 0,
-            bettingPeriodLength: 1, revealPeriodLength: 1, feePt: 10000,  requiredBetAmount: web3.toWei(1)})
-        .then( res => { done(); });
-    }); // should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit
-    */
-    it("should be possible to reveal (w/o startRevealing) after bettingPeriodEnds when there is no tickCountLimit");
-
-    // both tickCountLimit & bettingPeriodEnds is set
-    it("should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet");
-    it("shouldn't be possible to startRevealing before ticketCountLimit reached and it's not bettingPeriodEnds yet"); // assert VM exception
-    it("shouldn't be possible to startRevealing before bettingPeriodEnds and ticketCountLimit is not reached yet"); // assert VM exception
-
-    // ticketCountLimit is set & bettingPeriodEnds = 0
-        // it's covered with most bettingTest.js testcases
-        // it("should be possible to startRevealing when ticketCountLimit reached"); // it's covered with most bettingTest.js testcases
-        // it("should be possible to reveal (w/o startRevealing) after ticketCountLimit reached"); // it's covered with most bettingTest.js testcases
-
-    it("should be possible to declareWinner before revealPeriodEnds when all tickets revealed");
-    it("should be possible to declareWinner after revealPeriodEnds when NOT all tickets revealed");
-    it("shouldn't be possible to declareWinner before revaelPeriodEnds when not all tickets revealed"); // assert VM exception)
 
     it("shouldn't be possible to refund when round is not closed"); // assert VM exception
     it("shouldn't be possible to payWinner when round not closed"); // assert VM exception

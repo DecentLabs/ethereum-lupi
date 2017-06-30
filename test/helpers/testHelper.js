@@ -1,17 +1,45 @@
 // globals
 global.assert = require('assert');
+var moment = require('moment');
 
 var gasUseLog = new Array();
+
+module.exports = {
+    logGasUse: logGasUse,
+    waitForTimeStamp: waitForTimeStamp,
+    expectThrow: expectThrow
+}
 
 function logGasUse(roundName, tran, args, tx) {
     gasUseLog.push(  [roundName, tran, args, tx.receipt.gasUsed ]);
 } //  logGasUse ()
 
-/* function unlockAccounts( accounts) { // it's for testnetwork but couldn't dedect if we are on testrpc so just doing it from commandline
-    for (var i = 0; i < accounts.length; i++) {
-        web3.personal.unlockAccount(accounts[i], "1234", 60000);
-    }
-}; */
+function waitForTimeStamp(waitForTimeStamp) {
+
+    var currentTimeStamp = moment().utc().unix();
+    var wait =  waitForTimeStamp - currentTimeStamp;
+    wait = wait < 0 ? 0 : wait;
+
+    return new Promise( resolve => {
+            setTimeout(function () {
+                console.log("... waiting ", wait, "seconds then sending a dummy tx for blockTimeStamp to reach time required by test ...");
+                var blockTimeStamp = web3.eth.getBlock( web3.eth.blockNumber).timestamp;
+                if( blockTimeStamp < waitForTimeStamp ) {
+                    web3.eth.sendTransaction({from: web3.eth.accounts[0]}, function(error, res) {
+                        if (error) {
+                            console.log("waitForTimeStamp() web3.eth.sendTransaction() error")
+                            reject(error);
+                        } else {
+                            resolve();
+                        }
+                    });
+                } else {
+                    resolve();
+                }
+            }, wait * 1000);
+    });
+
+} // waitForTimeStamp()
 
 function expectThrow (promise) {
     return promise.then( res => {
@@ -32,11 +60,6 @@ function expectThrow (promise) {
     });
 }; // expectThrow
 
-
-module.exports = {
-    logGasUse: logGasUse,
-    expectThrow: expectThrow
-}
 
 after( function() {
     // runs after all tests
