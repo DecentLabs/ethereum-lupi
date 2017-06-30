@@ -11,7 +11,7 @@ var salt = "0xdb8780d713083a9addb6494cfc767d6ef4b1358315737e06bbb7fd84cc493d1c";
 // needed to avoid polluting owner & player account with tx costs
 var defaultTxAccount; // used for declareWinner, payerWinner and refund
 var gameOwnerAddress, lupiManagerOwnerAddress; // used for creating the contract
-var accounts;
+var accounts, lastAcccountToUseforBetting;
 
 module.exports = {
     setAccounts: setAccounts,
@@ -21,6 +21,7 @@ module.exports = {
 function setAccounts(_accounts) {
     accounts = _accounts;
     defaultTxAccount = accounts[0]; // used for declareWinner, payerWinner and refund
+    lastAcccountToUseforBetting = 18;
     lupiManagerOwnerAddress = accounts[19];
     gameOwnerAddress = accounts[20]; // used for creating the contract
 }
@@ -36,8 +37,11 @@ function runBettingTest(testParams) {
         testParams.toRevealCt = testParams.betsToPlace.length;
     }
     //testParams.requiredBetAmount = new BigNumber(testParams.requiredBetAmount);
-    var playerAddress = (testParams.expWinningNumber == 0) ? accounts[1] : accounts[testParams.expWinningIdx];
-    var expWinningAddress = (testParams.expWinningNumber == 0) ? 0 : accounts[testParams.expWinningIdx];
+
+    var winnerAccIdx = testParams.expWinningIdx > lastAcccountToUseforBetting ?
+                    lastAcccountToUseforBetting : testParams.expWinningIdx;
+    var expWinningAddress = (testParams.expWinningNumber == 0) ? 0 : accounts[winnerAccIdx ];
+    var playerAddressForBalanceCheck = expWinningAddress == 0 ? accounts[1] : expWinningAddress;
     var expWinningTicketId;
     var gameContractBalanceBefore, gameOwnerBalanceBefore, playerBalanceBefore;
     var revealStartTime;
@@ -71,33 +75,42 @@ function runBettingTest(testParams) {
                             "ticketCountLimit:", roundInfo.ticketCountLimit, "bettingPeriodEnds:", roundInfo.bettingPeriodEnds,
                             "ticketCount:", roundInfo.ticketCount );
                     reject(error);
-                })
-            }); //
+                }); // getRoundInfo()
+            }); // revealBet()
         }); // return new Promise
     }; _placeBetFn
 
     var _revealBetFn = bet => {
-     // called for each betsToPlace[] via  Promise.all().
-     return new Promise(resolve => resolve(
-         gameInstance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
-         .then( revealTx => {
-             var revealedEventIdx = 0;
-             if( revealTx.logs.length == 2 ) { // this is the first reveal
-                 assert.equal(revealTx.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after first reveal");
-                 assert(revealTx.logs[0].args.revealPeriodEnds >  testParams.revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
-                 assert(revealTx.logs[0].args.revealPeriodEnds < testParams.revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
-                 revealedEventIdx = 1;
-             }
-             assert.equal(revealTx.logs[revealedEventIdx].event, "e_BetRevealed", "e_BetRevealed event should be emmitted");
-             assert.equal(revealTx.logs[revealedEventIdx].args.player, bet.playerAddress, "playerAddress should be set in e_BetRevealed event");
-             assert.equal(revealTx.logs[revealedEventIdx].args.ticketId, bet.ticketId, "ticketId should be set in e_BetRevealed event");
-             assert.equal(revealTx.logs[revealedEventIdx].args.bet, bet.number, "bet should be set in e_BetRevealed event");
+        // called for each betsToPlace[] via  Promise.all().
+        return new Promise(function (resolve, reject) {
+            gameInstance.revealBet(bet.ticketId, bet.number, salt, {from: bet.playerAddress})
+            .then( revealTx => {
+                var revealedEventIdx = 0;
+                if( revealTx.logs.length == 2 ) { // this is the first reveal
+                    assert.equal(revealTx.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after first reveal");
+                    assert(revealTx.logs[0].args.revealPeriodEnds >  testParams.revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
+                    assert(revealTx.logs[0].args.revealPeriodEnds < testParams.revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
+                    revealedEventIdx = 1;
+                }
+                assert.equal(revealTx.logs[revealedEventIdx].event, "e_BetRevealed", "e_BetRevealed event should be emmitted");
+                assert.equal(revealTx.logs[revealedEventIdx].args.player, bet.playerAddress, "playerAddress should be set in e_BetRevealed event");
+                assert.equal(revealTx.logs[revealedEventIdx].args.ticketId, bet.ticketId, "ticketId should be set in e_BetRevealed event");
+                assert.equal(revealTx.logs[revealedEventIdx].args.bet, bet.number, "bet should be set in e_BetRevealed event");
 
-             testHelper.logGasUse(testParams.testCaseName, "revealBet()", "ticketId: " + bet.ticketId + " | idx: "
-                 + bet.idx + " | number: " + bet.number, revealTx);
-             return revealTx;
-         })
-     )); // return new Promise
+                testHelper.logGasUse(testParams.testCaseName, "revealBet()", "ticketId: " + bet.ticketId + " | idx: "
+                + bet.idx + " | number: " + bet.number, revealTx);
+                resolve(revealTx);
+            }).catch( error => {
+                gameInstance.getRoundInfo()
+                .then (res => {
+                    var roundInfo = new lupiHelper.RoundInfo(res);
+                    console.log("revealBet() error when revealing bet.idx:", bet.idx, "ticketId: ", bet.ticketId, "RoundInfo: state:", roundInfo.state.toString(),
+                            "ticketCountLimit:", roundInfo.ticketCountLimit, "bettingPeriodEnds:", roundInfo.bettingPeriodEnds,
+                            "revealPeriodEnds:", roundInfo.revealPeriodEnds, "ticketCount:", roundInfo.ticketCount, "revealedCount:", roundInfo.revealedCount );
+                    reject(error);
+                }); // getRoundInfo()
+            }); // revealBet()
+        }); // return new Promise
     }; // _revealBetFn()
 
     var _refundFn = bet => {
@@ -159,7 +172,7 @@ function runBettingTest(testParams) {
         assert.equal(roundInfo.feePt, testParams.feePt, "new game feePt should be set");
 
         gameContractBalanceBefore = web3.eth.getBalance(gameInstance.address);
-        playerBalanceBefore = web3.eth.getBalance(playerAddress);
+        playerBalanceBefore = web3.eth.getBalance(playerAddressForBalanceCheck);
 
         var expFeeAmount = testParams.requiredBetAmount * testParams.feePt / 1000000 * testParams.ticketCountLimit;
         var expGuaranteedPot = testParams.requiredBetAmount * testParams.ticketCountLimit - expFeeAmount;
@@ -168,7 +181,14 @@ function runBettingTest(testParams) {
         // betsToPlace transformed into a struct array  with playerAddress, encryptedBet  etc.
         for (var i = 0; i < testParams.betsToPlace.length ; i++){
             // playerAddress is ref to accounts[] (idx+1 to avoid pollutin owner ac with transaction fees)
-            testParams.betsToPlace[i] = { number: testParams.betsToPlace[i], amount: testParams.requiredBetAmount, playerAddress: accounts[i+1], idx: i };
+            var playerAddress;
+            if (i+1> lastAcccountToUseforBetting ) {
+                playerAddress = accounts[lastAcccountToUseforBetting];
+            } else {
+                playerAddress = accounts[i+1];
+            }
+            testParams.betsToPlace[i] = { number: testParams.betsToPlace[i], amount: testParams.requiredBetAmount, playerAddress: playerAddress, idx: i };
+
         }
         revealStartTime = moment().utc().unix();
         var placeBetActions = testParams.betsToPlace.map(_placeBetFn);
@@ -235,7 +255,7 @@ function runBettingTest(testParams) {
         assert.equal(roundInfo.winningNumber, 0, "The winningNumber should be yet 0 after revealBets()");
         assert.equal(roundInfo.winningAddress, 0, "The winningAddress should be yet 0 after revealBets()");
 
-        playerBalanceBefore = web3.eth.getBalance(playerAddress);
+        playerBalanceBefore = web3.eth.getBalance(playerAddressForBalanceCheck);
         gameContractBalanceBefore = web3.eth.getBalance(gameInstance.address);
         gameOwnerBalanceBefore = web3.eth.getBalance(gameOwnerAddress);
         // console.log("****** declareWinner", roundInfo.revealPeriodEnds, moment().utc().unix(), web3.eth.getBlock(web3.eth.blockNumber).timestamp);
@@ -244,8 +264,8 @@ function runBettingTest(testParams) {
         testHelper.logGasUse(testParams.testCaseName, "declareWinner()", "", tx);
         expWinningTicketId = (testParams.expWinningNumber == 0) ? 0 :  testParams.betsToPlace[testParams.expWinningIdx-1].ticketId;
         assert.equal(tx.logs[0].event, "e_WinnerDeclared", "e_WinnerDeclared event should be emmitted");
-        assert.equal(tx.logs[0].args.winningTicket , expWinningTicketId, "winningTicket should be set in e_WinnerDeclared event");
-        assert.equal(tx.logs[0].args.winningNumber, testParams.expWinningNumber, "winningNumber should be set in e_WinnerDeclared event");
+        assert.equal(tx.logs[0].args.winningTicket.toString(), expWinningTicketId.toString(), "winningTicket should be set in e_WinnerDeclared event");
+        assert.equal(tx.logs[0].args.winningNumber.toString(), testParams.expWinningNumber.toString(), "winningNumber should be set in e_WinnerDeclared event");
         assert.equal(tx.logs[0].args.winnerAddress, expWinningAddress, "winnerAddress should be set in e_WinnerDeclared event");
 
         return gameInstance.getRoundInfo();
@@ -258,7 +278,7 @@ function runBettingTest(testParams) {
         assert.equal(roundInfo.winningAddress, expWinningAddress, "The winningAddress should be set after declareWinner()");
         var gameOwnerBalance = web3.fromWei(web3.eth.getBalance(gameOwnerAddress)).toString();
         var gameContractBalance = web3.fromWei(web3.eth.getBalance(gameInstance.address)).toString();
-        var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddress)).toString();
+        var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddressForBalanceCheck)).toString();
         assert.equal(gameOwnerBalance, web3.fromWei(gameOwnerBalanceBefore.add(roundInfo.feeAmount)).toString(), "the fee should be sent to owner after declareWinner()");
         assert.equal(gameContractBalance, web3.fromWei(gameContractBalanceBefore.minus(roundInfo.feeAmount)).toString(), "the fee should be deducted from contractbalance after declareWinner()");
         assert.equal(playerBalance, web3.fromWei(playerBalanceBefore).toString(), "player balance should be intact (yet) after declareWinner()");
@@ -283,7 +303,7 @@ function runBettingTest(testParams) {
         var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
         var gameOwnerBalance = web3.fromWei(web3.eth.getBalance(gameOwnerAddress)).toString();
         var gameContractBalance = web3.fromWei(web3.eth.getBalance(gameInstance.address)).toString();
-        var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddress)).toString();
+        var playerBalance = web3.fromWei(web3.eth.getBalance(playerAddressForBalanceCheck)).toString();
         assert.equal(gameOwnerBalance, web3.fromWei(gameOwnerBalanceBefore).toString(), "the owner balance should be the same after payWinner()");
         assert.equal(gameContractBalance, web3.fromWei(gameContractBalanceBefore.minus(roundInfo.currentPotAmount)).toString(), "the current pot should be deducted from contract balance after payWinner() or refund()");
         if(testParams.expWinningNumber == 0 ) {
