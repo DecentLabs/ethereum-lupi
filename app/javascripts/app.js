@@ -399,14 +399,11 @@ window.App = {
             return gameInstance.sealBetForAddress(account.toString(), guess, salt);
         }).then( function(sealRes) {
             sealedBet = sealRes;
-            web3.eth.estimateGas( {from: account, data: gameInstance.placeBet.getData}, function(error, res ) {
-                if (roundInfo.ticketCount == roundInfo.ticketCountLimit -1 ) {
-                    gasEstimate = res + 90000;
-                } else {
-                    gasEstimate = res + 50000;
-                }
-                console.log(res);
-                gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount, gas: gasEstimate})
+            web3.eth.getGasPrice( function(error, res ) {
+                gasEstimate = LupiHelper.GAS.placeBetLast.gas; // must use gas estimate for last because other bets could have landed...
+                var gasPrice = LupiHelper.GAS.placeBetLast.price * res;
+                gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount,
+                                                    gas: gasEstimate, gasPrice: gasPrice})
                 .then( tx =>  {
                     if( tx.receipt.gasUsed == gasEstimate) {
                         throw("placeBet error, all gas used: " + tx.receipt.gasUsed);
@@ -451,7 +448,7 @@ window.App = {
                     self.setStatus('danger', "Error sending your guess; see log.");
                     placeBetButton.disabled = false;
                 }); // placeBet()
-            }); // estimateGas()
+            }); // getGasPrice()
         }).catch( e => {
             console.error("App.placeBet error", e);
             self.setStatus('danger', "Error sending your guess; see log.");
@@ -551,9 +548,10 @@ window.App = {
         var gasEstimate;
         self.setStatus('info', "Initiating transaction... (please wait)");
 
-        web3.eth.estimateGas( {from: account, data: gameInstance.startRevealing.getData }, function(error, res) {
-            gasEstimate = res + 20000;
-            gameInstance.startRevealing({from: account, gas: gasEstimate})
+        web3.eth.getGasPrice( function(error, res ) {
+            gasEstimate = LupiHelper.GAS.startRevealing.gas;
+            var gasPrice = LupiHelper.GAS.startRevealing.price * res;
+            gameInstance.startRevealing({from: account, gas: gasEstimate, gasPrice: gasPrice })
             .then( tx => {
                 if( tx.receipt.gasUsed == gasEstimate) {
                     throw("startRevealing error, all gas used: " + tx.receipt.gasUsed);
@@ -566,7 +564,7 @@ window.App = {
                 console.error("startRevealing() error", e);
                 self.setStatus('danger', "Error while starting to reveal; see log.");
             }); // startRevealing()
-        }); // estimateGas()
+        }); // getGasPrice()
     },
 
     manualRevealBet: function() {
@@ -582,13 +580,25 @@ window.App = {
 
     revealBet: function( gameAddress, ticket) {
         var self = this;
-        var gasEstimate;
+        var gasEstimate, gasPrice, roundInfo;
         self.setStatus('info', "Initiating transaction... (please wait)");
-        // TODO: first reveal ca. 194k then 121k or 88k ...
-        web3.eth.estimateGas( {from: account, data: gameInstance.revealBet.getData }, function( error, res) {
-            gasEstimate = res + 150000;
-            gameInstance.revealBetForAddress(ticket.account, ticket.ticketId, ticket.guess, ticket.salt, {from: account, gas: gasEstimate})
-            .then( tx => {
+
+        web3.eth.getGasPrice( function(error, res ) {
+            gasPrice = res;
+            gameInstance.getRoundInfo()
+            .then( res => {
+                roundInfo = new LupiHelper.RoundInfo(res);
+                if (roundInfo.revealedCount == 0) {
+                    gasEstimate = LupiHelper.GAS.revealBetFirst.gas;
+                    gasPrice = LupiHelper.GAS.revealBetFirst.price * gasPrice;
+                } else {
+                    gasEstimate = LupiHelper.GAS.revealBet.gas;
+                    gasPrice = LupiHelper.GAS.revealBet.price * gasPrice;
+                }
+                console.log(gasEstimate, web3.fromWei(gasPrice))    ;
+                return gameInstance.revealBetForAddress(ticket.account, ticket.ticketId, ticket.guess, ticket.salt,
+                        {from: account, gas: gasEstimate, gasPrice: gasPrice });
+            }).then( tx => {
                 if( tx.receipt.gasUsed == gasEstimate) {
                     throw("revealBetForAddress error, all gas used: " + tx.receipt.gasUsed);
                 }
@@ -613,35 +623,39 @@ window.App = {
                 self.refreshUI();
             }).catch(function(e) {
                 console.error("revealBet() error", e);
-                self.setStatus('danger', "Error while revealing your guess; see log.</font>");
-            }); // revealBet ()
-        }); // estimateGas()
+                self.refreshUI();
+                self.setStatus('danger', "Error while revealing your guess; see log.</font>")
+            }); // getRoundInfo()
+        }); // getGasPrice()
     }, // revealBet()
 
     declareWinner: function() {
         var self = this;
-        var gasEstimate;
+        var gasEstimate, gasPrice;
         var roundInfo;
         self.setStatus('info', "Initiating transaction, please wait.");
 
-        gameInstance.getRoundInfo()
-        .then( res => {
-            roundInfo = new LupiHelper.RoundInfo(res);
-            web3.eth.estimateGas( {from: account, data: gameInstance.declareWinner.getData }, function(error, res) {
-                gasEstimate =  res + 10000 + roundInfo.ticketCountLimit * 1000;
-                gameInstance.declareWinner({from: account, gas: gasEstimate})
-                .then( tx => {
-                    if( tx.receipt.gasUsed == gasEstimate) {
-                        throw("declareWinner error, all gas used: " + tx.receipt.gasUsed);
-                    }
-                    self.setStatus('success', "Winner declared" );
-                    self.refreshUI();
-                }).catch(function(e) {
-                    console.error("declareWinner() error", e);
-                    self.setStatus('danger', "Error while declaring winner; see log.");
-                }); // declareWinner()
-            }); // estimateGas()
-        }); // getRoundInfo()
+        web3.eth.getGasPrice( function(error, res ) {
+            gasPrice = LupiHelper.GAS.declareWinner.price * res;
+            gameInstance.getRoundInfo()
+            .then( res => {
+                roundInfo = new LupiHelper.RoundInfo(res);
+                gasEstimate = LupiHelper.GAS.declareWinner.gasBase
+                            + roundInfo.ticketCountLimit * LupiHelper.GAS.declareWinner.gasPerGuess;
+
+                return  gameInstance.declareWinner({from: account, gas: gasEstimate, gasPrice: gasPrice })
+            }).then( tx => {
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("declareWinner error, all gas used: " + tx.receipt.gasUsed);
+                }
+                self.setStatus('success', "Winner declared" );
+                self.refreshUI();
+            }).catch(function(e) {
+                console.error("declareWinner() error", e);
+                self.refreshUI();
+                self.setStatus('danger', "Error while declaring winner; see log.");
+            }); // getRoundInfo()
+        }); // getGasPrice()
     },
 
     payWinner: function() {
@@ -649,9 +663,10 @@ window.App = {
         var gasEstimate;
         self.setStatus('info', "Initiating transaction, please wait");
 
-        web3.eth.estimateGas( {from: account, data: gameInstance.payWinner.getData }, function(error, res) {
-            gasEstimate = res + 10000;
-            gameInstance.payWinner( {from: account, gas: gasEstimate})
+        web3.eth.getGasPrice( function(error, res ) {
+            gasEstimate = LupiHelper.GAS.payWinner.gas;
+            var gasPrice = LupiHelper.GAS.payWinner.price * res;
+            gameInstance.payWinner( {from: account, gas: gasEstimate, gasPrice: gasPrice })
             .then( tx => {
                 if( tx.receipt.gasUsed == gasEstimate) {
                     throw("payWinner error, all gas used: " + tx.receipt.gasUsed);
@@ -660,9 +675,10 @@ window.App = {
                 self.refreshUI();
             }).catch(function(e) {
                 console.error("payWinner() error", e);
+                self.refreshUI();
                 self.setStatus('danger', "Error while paying winner; see log.");
             }); // payWinner()
-        }); // estimateGas()
+        }); // getGasPrice()
     },
 
     refund: function() {
@@ -671,9 +687,10 @@ window.App = {
         self.setStatus('info', "Initiating transaction... (please wait)");
         var ticketId =  parseInt(document.getElementById("refundTicketId").value);
 
-        web3.eth.estimateGas( {from: account, data: gameInstance.refund.getData }, function(error, res) {
-            gasEstimate = res + 10000;
-            gameInstance.refund( ticketId, {from: account, gas: gasEstimate})
+        web3.eth.getGasPrice( function(error, res ) {
+            gasEstimate = LupiHelper.GAS.refund.gas;
+            var gasPrice = LupiHelper.GAS.refund.price * res;
+            gameInstance.refund( ticketId, {from: account, gas: gasEstimate, gasPrice: gasPrice})
             .then( tx => {
                 if( tx.receipt.gasUsed == gasEstimate) {
                     throw("refund error, all gas used: " + tx.receipt.gasUsed);
@@ -682,6 +699,7 @@ window.App = {
                 self.refreshUI();
             }).catch(function(e) {
                 console.error("refund() error", e);
+                self.refreshUI();
                 self.setStatus('danger', "Error while refunding; see log.");
             }); // refund()
         }); // estimateGas()
@@ -698,22 +716,25 @@ window.App = {
         var bettingPeriodEnd = bettingPeriodLength == 0 ? 0 : bettingPeriodLength +  moment().utc().unix();
         var feePt = document.getElementById("feePtInput").value * 10000;
 
-        //web3.eth.estimateGas( {from: account, data: lupiManagerInstance.createGame.getData }) + 10000;
-        gasEstimate = 1200000;
-        lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd, revealPeriodLength, feePt,
-                 {from: account, gas: gasEstimate})
-        .then( tx => {
-            if( tx.receipt.gasUsed == gasEstimate) {
-                throw("createGame error, all gas used: " + tx.receipt.gasUsed);
-            }
-            self.setStatus('success', "Game created. Idx: " + tx.logs[2].args.gameIdx
-            + " address: " + tx.logs[1].args.gameAddress);
-            $('#createGameDivModal').modal('hide');
-            self.refreshUI();
-        }).catch(function(e) {
-            console.error("createGame() error", e);
-            self.setStatus('danger', "Error while creating game; see log.");
-        });
+        web3.eth.getGasPrice( function(error, res ) {
+            gasEstimate = LupiHelper.GAS.createGame.gas;
+            var gasPrice = LupiHelper.GAS.createGame.price * res;
+
+            lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd, revealPeriodLength, feePt,
+                     {from: account, gas: gasEstimate, gasPrice: gasPrice})
+            .then( tx => {
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("createGame error, all gas used: " + tx.receipt.gasUsed);
+                }
+                self.setStatus('success', "Game created. Idx: " + tx.logs[2].args.gameIdx
+                + " address: " + tx.logs[1].args.gameAddress);
+                $('#createGameDivModal').modal('hide');
+                self.refreshUI();
+            }).catch(function(e) {
+                console.error("createGame() error", e);
+                self.setStatus('danger', "Error while creating game; see log.");
+            });
+        }); // getGasPrice()
     },
 
 };
