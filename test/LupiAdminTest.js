@@ -2,6 +2,7 @@ var lupi = artifacts.require("./Lupi.sol");
 var helper = new require('./helpers/testHelper.js');
 var lupiHelper = new require('../app/javascripts/LupiHelper.js');
 var BigNumber = require('bignumber.js');
+var moment = require('moment');
 
 contract("Lupi admin tests", accounts => {
     var instance, ownerAddress;
@@ -83,17 +84,27 @@ contract("Lupi admin tests", accounts => {
         }); // expectThrow
     }); // feeAmount should be less than requiredBetAmount
 
-    it('ticketCount limit should be greater than 0', done => {
-        helper.expectThrow( lupi.new(web3.toWei(1), 0, 0, 60, 10000, { account: accounts[0], gas: 3000000}))
+    it('ticketCount limit should be greater than 0 if bettingPeriodEnds = 0', done => {
+        helper.expectThrow( lupi.new(web3.toWei(1), 0, 60, 60, 10000, { account: accounts[0], gas: 3000000}))
         .then( res => {
             done();
         }); // expectThrow
-    }); // ticketCount limit should be greater than 0
-    it("it shouldn't be possible to create a game with 0 revealPeriodLength"); // 0? or treshold?
+    }); // ticketCount limit should be greater than 0 if bettingPeriodEnds = 0
 
-    it('bettingPeriodEnd should be set if there is no ticketCountLimit');
-    it('ticketCountLimit should be set if there is no bettingPeriodEnd');
-    it('bettingPeriodEnd should be 0 or later than now');
+    it("bettingPeriodEnd should be greater than now if it's not 0", done => {
+        var bettingPeriodEnds = moment().utc().unix();
+        helper.expectThrow( lupi.new(web3.toWei(1), 10, bettingPeriodEnds, 60, 10000, { account: accounts[0], gas: 3000000}))
+        .then( res => {
+            done();
+        }); // expectThrow
+    }); // bettingPeriodEnd should be greater than now if it's not 0
+
+    it("revealPeriodLength should be greater than 0", done => {
+        helper.expectThrow( lupi.new(web3.toWei(1), 1, 0, 0, 10000, { account: accounts[0], gas: 3000000}))
+        .then( res => {
+            done();
+        }); // expectThrow
+    }); // revealPeriodLength should be greater than 0
 
     it('should be possible to schedule startRevealing');
     it('should be possible to schedule revealBet');
