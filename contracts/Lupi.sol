@@ -36,6 +36,7 @@ contract Lupi is owned {
     // TODO: function getBets(address _player) constant returns bets[]
 
     function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _bettingPeriodEnd, uint _revealPeriodLength, uint _feePt ) {
+        require(_revealPeriodLength > 0);
         require(_ticketCountLimit > 0 || _bettingPeriodEnd > now);
         require(_bettingPeriodEnd > now || _bettingPeriodEnd == 0);
         require(_requiredBetAmount * _feePt / 1000000 < _requiredBetAmount);
