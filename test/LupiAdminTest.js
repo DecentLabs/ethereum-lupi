@@ -77,14 +77,14 @@ contract("Lupi admin tests", accounts => {
     }); // should be possible to change owner
 
     it('feeAmount should be less than requiredBetAmount', done => {
-        helper.expectThrow( lupi.new(web3.toWei(1), 1, 1, 1000000, { account: accounts[0], gas: 3000000}))
+        helper.expectThrow( lupi.new(web3.toWei(1), 1, 0, 1, 1000000, { account: accounts[0], gas: 3000000}))
         .then( res => {
             done();
         }); // expectThrow
     }); // feeAmount should be less than requiredBetAmount
 
     it('ticketCount limit should be greater than 0', done => {
-        helper.expectThrow( lupi.new(web3.toWei(1), 0, 1, 10000, { account: accounts[0], gas: 3000000}))
+        helper.expectThrow( lupi.new(web3.toWei(1), 0, 0, 60, 10000, { account: accounts[0], gas: 3000000}))
         .then( res => {
             done();
         }); // expectThrow
