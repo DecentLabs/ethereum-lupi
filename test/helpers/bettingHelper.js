@@ -75,7 +75,7 @@ function TestParams( _testParams) {
     this.expWinningAddress = (this.expWinningNumber == 0) ? 0 : this.accounts[this.winnerAccIdx ];
     this.playerAddressForBalanceCheck = this.expWinningAddress == 0 ? this.accounts[1] : this.expWinningAddress;
     var expWinningTicketId; // will be set by _placeBetFn
-    var revealStartTime = 0; //will be set after reveal;
+    this.revealStartTime = 0; //will be set after reveal;
     var lupiManagerInstance, gameInstance; // will be set in _createGame
 
 } // TestParams()
@@ -148,7 +148,20 @@ function _placeBets(_testParams) {
         } else {
             playerAddress = _testParams.accounts[i+1];
         }
-        _testParams.betsToPlace[i] = { number: _testParams.betsToPlace[i], amount: _testParams.requiredBetAmount, playerAddress: playerAddress, idx: i };
+
+        var num , amount, player;
+        if (typeof _testParams.betsToPlace[i] == "number") {
+            // called first time
+            num = _testParams.betsToPlace[i];
+            amount = _testParams.requiredBetAmount;
+            player = playerAddress;
+        } else {
+            // when we call second time with same testParams (for edge case tests) then it's already a JSON struct
+            num = _testParams.betsToPlace[i].number;
+            amount = _testParams.betsToPlace[i].amount;
+            player = _testParams.betsToPlace[i].playerAddress;
+        }
+        _testParams.betsToPlace[i] = { number: num, amount: amount, playerAddress: player, idx: i };
     }
 
     _testParams.revealStartTime = moment().utc().unix(); // if last bet triggers reveal
@@ -211,9 +224,10 @@ var _placeBetFn = bet => {
             testParams.gameInstance.getRoundInfo()
             .then (res => {
                 var roundInfo = new lupiHelper.RoundInfo(res);
-                console.log("placeBet() error when placing bet.idx:", bet.idx, "RoundInfo: state:", roundInfo.state.toString(),
+                // this can be unexpected OR expected when called with expectThrow so not cluttering output with it.
+                /* console.log("placeBet() error when placing bet.idx:", bet.idx, "RoundInfo: state:", roundInfo.state.toString(),
                         "ticketCountLimit:", roundInfo.ticketCountLimit, "bettingPeriodEnds:", roundInfo.bettingPeriodEnds,
-                        "ticketCount:", roundInfo.ticketCount );
+                        "ticketCount:", roundInfo.ticketCount ); */
                 reject(error);
             }); // getRoundInfo()
         }); // revealBet()
@@ -266,8 +280,8 @@ var _revealBetFn = bet => {
             var revealedEventIdx = 0;
             if( revealTx.logs.length == 2 ) { // this is the first reveal
                 assert.equal(revealTx.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after first reveal");
-                assert(revealTx.logs[0].args.revealPeriodEnds >  testParams.revealPeriodLength + revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
-                assert(revealTx.logs[0].args.revealPeriodEnds < testParams.revealPeriodLength + revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
+                assert(revealTx.logs[0].args.revealPeriodEnds >  testParams.revealPeriodLength + testParams.revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
+                assert(revealTx.logs[0].args.revealPeriodEnds < testParams.revealPeriodLength + testParams.revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
                 revealedEventIdx = 1;
             }
             assert.equal(revealTx.logs[revealedEventIdx].event, "e_BetRevealed", "e_BetRevealed event should be emmitted");
@@ -282,9 +296,11 @@ var _revealBetFn = bet => {
             testParams.gameInstance.getRoundInfo()
             .then (res => {
                 var roundInfo = new lupiHelper.RoundInfo(res);
-                console.log("revealBet() error when revealing bet.idx:", bet.idx, "ticketId: ", bet.ticketId, "RoundInfo: state:", roundInfo.state.toString(),
+                //  commented out debug info to reduce clutter  b/c it's is expected in some test cases
+                /* console.log("revealBet() error when revealing bet.idx:", bet.idx, "ticketId: ", bet.ticketId, "RoundInfo: state:", roundInfo.state.toString(),
                         "ticketCountLimit:", roundInfo.ticketCountLimit, "bettingPeriodEnds:", roundInfo.bettingPeriodEnds,
                         "revealPeriodEnds:", roundInfo.revealPeriodEnds, "ticketCount:", roundInfo.ticketCount, "revealedCount:", roundInfo.revealedCount );
+                */
                 reject(error);
             }); // getRoundInfo()
         }); // revealBet()
@@ -336,7 +352,6 @@ function _payWinnerOrRefund(_testParams) {
                 return refundResults.then( refundTxs => {
                     resolve( _testParams.gameInstance.getRoundInfo());
                 }).catch(error => {
-                    console.log("Promise.all(refundActions) error");
                     reject(error);
                 });
             } else {
@@ -345,7 +360,6 @@ function _payWinnerOrRefund(_testParams) {
                     testHelper.logGasUse(_testParams.testCaseName, "payWinner()", "", tx);
                     resolve( _testParams.gameInstance.getRoundInfo());
                 }).catch(error => {
-                    console.log("payWinner() error");
                     reject(error);
                 }); // payWinner()
             };
@@ -364,7 +378,6 @@ function _payWinnerOrRefund(_testParams) {
             }
             resolve(_testParams);
         }).catch( error => {
-            console.log("_payWinnerOrRefund() error");
             reject(error);
         });
     });

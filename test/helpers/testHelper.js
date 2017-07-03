@@ -19,10 +19,10 @@ function waitForTimeStamp(waitForTimeStamp) {
     var currentTimeStamp = moment().utc().unix();
     var wait =  waitForTimeStamp - currentTimeStamp;
     wait = wait < 0 ? 0 : wait;
+    console.log("... waiting ", wait, "seconds then sending a dummy tx for blockTimeStamp to reach time required by test ...");
 
     return new Promise( resolve => {
             setTimeout(function () {
-                console.log("... waiting ", wait, "seconds then sending a dummy tx for blockTimeStamp to reach time required by test ...");
                 var blockTimeStamp = web3.eth.getBlock( web3.eth.blockNumber).timestamp;
                 if( blockTimeStamp < waitForTimeStamp ) {
                     web3.eth.sendTransaction({from: web3.eth.accounts[0]}, function(error, res) {
@@ -54,8 +54,9 @@ function expectThrow (promise) {
         //       we distinguish this from an actual out of gas event? (The
         //       testrpc log actually show an 'invalid jump' event.)
         const outOfGas = error.message.search('out of gas') >= 0;
-        const invalidOpcode = error.message.search('VM Exception while processing transaction: invalid opcode') >=0;
-        assert( invalidOpcode || invalidJump || outOfGas, "Expected throw, got '" + error + "' instead", );
+        const invalidOpcode1 = error.message.search('VM Exception while processing transaction: invalid opcode') >=0;
+        const invalidOpcode2 = error.message.search("VM Exception while executing eth_call: invalid opcode") >= 0;
+        assert( invalidOpcode1 || invalidOpcode2 || invalidJump || outOfGas, "Expected solidity throw, got '" + error + "' instead", );
         return ;
     });
 }; // expectThrow

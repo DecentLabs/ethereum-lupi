@@ -1,4 +1,5 @@
 var lupi = artifacts.require("./Lupi.sol");
+var helper = new require('./helpers/testHelper.js');
 
 contract("Lupi seal tests", accounts => {
     var instance, ownerAddress;
@@ -45,5 +46,12 @@ contract("Lupi seal tests", accounts => {
             }),
         ]); // Promise.all()
     });// should be possible to seal a bet for someone else
+
+    it("shouldn't be possible to seal a bet 0 number", done => {
+        helper.expectThrow(instance.sealBet(0, salt1, { from: accounts[1] }))
+        .then( res => {
+            done();
+        });
+    }); // shouldn't be possible to seal a bet 0 number
 
 });
