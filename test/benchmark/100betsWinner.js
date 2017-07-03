@@ -1,9 +1,9 @@
 var bettingHelper = new require('../helpers/bettingHelper.js');
 
-contract("Lupi 100 bets tied", accounts => {
+contract("Lupi 100 bets winner", accounts => {
 
     it('should be possible to play a round with 100 bet with winner', done => {
-
+        
         var bets = [43, 87, 24, 23, 11, 56, 64, 78, 86, 71,
                     72, 95, 94, 91, 43, 59, 82, 72, 43, 25,
                     62, 23, 11, 72, 37, 47, 61, 97, 23, 70,
@@ -20,7 +20,7 @@ contract("Lupi 100 bets tied", accounts => {
             bettingPeriodLength: 0, revealPeriodLength: 600, feePt: 10000,  requiredBetAmount: web3.toWei(1)});
         bettingHelper.runBettingTest( testParams)
         .then( res => { done(); });
-    }); // should be possible to play a round with 1 bet
+    }).timeout(120*60*1000 ); // should be possible to play a round with 1 bet
 
 
 }); // contract("Lupi betting tests)
