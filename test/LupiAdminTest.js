@@ -97,10 +97,6 @@ contract("Lupi admin tests", accounts => {
         return helper.expectThrow( lupi.new(web3.toWei(1), 10, bettingPeriodEnds, 60, 10000, { account: accounts[0], gas: 3000000}));
     }); // bettingPeriodEnd should be greater than now if it's not 0
 
-    it("revealPeriodLength should be greater than 0", () => {
-        return helper.expectThrow( lupi.new(web3.toWei(1), 1, 0, 0, 10000, { account: accounts[0], gas: 3000000}));
-    }); // revealPeriodLength should be greater than 0
-
     it('should be possible to schedule startRevealing');
     it('should be possible to schedule revealBet');
     it('should be possible to schedule declareWinner');
