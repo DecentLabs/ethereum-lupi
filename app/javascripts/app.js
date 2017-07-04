@@ -30,7 +30,7 @@ var gameInstance, lupiManagerInstance;
 // TODO: add accountchange event to do refreshUI (for Metamask users)
 window.App = {
     start: function() {
-        var self = this;
+        var self = this, lupiManagerOwner;
         return new Promise( (resolve, reject) => {
             lupiManager.setProvider(web3.currentProvider);
             Lupi.setProvider(web3.currentProvider);
@@ -62,23 +62,24 @@ window.App = {
                     return lupiManagerInstance.owner();
                 }).then( res => {
                     document.getElementById("lupiManagerOwner").innerHTML = res;
-                    if (res ==  "0x" ) {
-                        throw("lupiManager at " + lupiManager.address + " returned 0x owner() - not deployed?");
+                    lupiManagerOwner = res;
+                    if (lupiManagerOwner ==  "0x" ) {
+                        throw("lupiManager at " + lupiManagerInstance.address + " returned 0x owner() - not deployed?");
                     }
                     return self.refreshGameInstance();
                 }).then( res => {
-                        self.refreshUI()
-                        .then( res => {
-                            resolve();
-                        });
+                    return self.refreshUI();
+                }).then( res => {
+                        resolve();
                 }).catch( error => {
                     document.getElementById("loadingDiv").style.display = "none";
-                    if(lupiManagerInstance.address != 0) {
-                        App.setStatus('danger', "No game started yet. Owner can add one.<br>( LupiManager at " + lupiManagerInstance.address +")");
-                        document.getElementById("connectHelpDiv").style.display = "none";
-                    } else {
+                    console.log(lupiManagerInstance);
+                    if(typeof lupiManagerInstance == "undefined" || lupiManagerOwner  == "0x") {
                         App.setStatus('danger', "Can't find any game on Ethereum network. Are you on testnet?");
                         document.getElementById("connectHelpDiv").style.display = "block";
+                    } else {
+                        App.setStatus('danger', "No game started yet. Owner can add one.<br>( LupiManager at " + lupiManagerInstance.address +")");
+                        document.getElementById("connectHelpDiv").style.display = "none";
                     }
                     reject(error);
                 }); // lupiManager.deployed()
