@@ -7,7 +7,7 @@ const GAS =
         placeBet : { gas: 99000, price: 1 }, // 96,494 - 96,552 but 98,114 - 98,322 on privatechain
         placeBetLast : { gas: 150000, price: 1 }, // testrcp: 138,116 - 140,722 privatechain: 140,722 - 140,786
 
-        startRevealing : { gas: 63180, price: 0.3 }, // testrpc: 63,180  privatechain: ?
+        startRevealing : { gas: 66000, price: 0.3 }, // testrpc: 63,180  privatechain: 64,120
 
         // these are for revealing a unique number gas which is higher but we can't safely predict if it's unique or not
         revealBetFirst : { gas: 195000, price: 1 }, // testrcp: 147,816 - 189,379 privatechain: 193604 - 193,668
