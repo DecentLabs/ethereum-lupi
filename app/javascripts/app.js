@@ -73,7 +73,6 @@ window.App = {
                         resolve();
                 }).catch( error => {
                     document.getElementById("loadingDiv").style.display = "none";
-                    console.log(lupiManagerInstance);
                     if(typeof lupiManagerInstance == "undefined" || lupiManagerOwner  == "0x") {
                         App.setStatus('danger', "Can't find any game on Ethereum network. Are you on testnet?");
                         document.getElementById("connectHelpDiv").style.display = "block";
@@ -120,14 +119,14 @@ window.App = {
         console.debug("listenToLupiManagerEvents");
         web3.eth.getBlockNumber( function(error, res) {
             startFromBlock = res ;
-            lupiManagerInstance.e_GameCreated({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+            lupiManagerInstance.e_GameCreated( {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
                 if (error) {
                     console.error("listenToLupiManagerEvents() e_GameCreated error:", error);
                 } else {
                     if(startFromBlock < result.blockNumber) {
                         console.debug("e_GameCreated");
-                        self.refreshGameInstance().then( res => {
-                            return self.removeLupiWatches()
+                        self.removeLupiWatches().then( res => {
+                            return self.refreshGameInstance()
                         }).then( res => {
                             self.refreshUI();
                         });
@@ -138,12 +137,19 @@ window.App = {
     }, // listenToLupiManagerEvents
 
     removeLupiWatches: function() {
-        return Promise.all( [
-                        gameInstance.e_BetPlaced().stopWatching(),
-                        gameInstance.e_RevealStarted().stopWatching(),
-                        gameInstance.e_BetRevealed().stopWatching(),
-                        gameInstance.e_WinnerDeclared().stopWatching()
-                    ]);
+        return new Promise( resolve => {
+            console.debug("removeLupiWatches");
+            if (typeof gameInstance == "undefined") {
+                resolve();
+            } else {
+                resolve( Promise.all( [
+                                gameInstance.e_BetPlaced().stopWatching(),
+                                gameInstance.e_RevealStarted().stopWatching(),
+                                gameInstance.e_BetRevealed().stopWatching(),
+                                gameInstance.e_WinnerDeclared().stopWatching()
+                            ]));
+            }
+        }); // return new Promise()
     }, // removeLupiWatches()
 
     listenToLupiEvents: function() {
@@ -152,7 +158,7 @@ window.App = {
         console.debug("listenToLupiEvents");
         web3.eth.getBlockNumber( function(error, res) {
             startFromBlock = res ;
-            gameInstance.e_BetPlaced({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+            gameInstance.e_BetPlaced( {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
                 if (error) {
                     console.error("listenToLupiEvents() e_BetPlaced error:", error);
                 } else {
@@ -163,7 +169,7 @@ window.App = {
                 }
             }); // e_BetPlaced
 
-            gameInstance.e_RevealStarted({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+            gameInstance.e_RevealStarted( {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
                 if (error) {
                     console.error("listenToLupiEvents() e_RevealStarted error:", error);
                 } else {
@@ -174,7 +180,7 @@ window.App = {
                 }
             }); // e_RevealStarted
 
-            gameInstance.e_BetRevealed({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+            gameInstance.e_BetRevealed( {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
                 if (error) {
                     console.error("listenToLupiEvents() e_BetRevealed error:", error);
                 } else {
@@ -185,7 +191,7 @@ window.App = {
                 }
             }); // e_BetRevealed
 
-            gameInstance.e_WinnerDeclared({}, {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
+            gameInstance.e_WinnerDeclared( {fromBlock: "latest", toBlock: "latest"}).watch( function(error, result) {
                 if (error) {
                     console.error("listenToLupiEvents() e_WinnerDeclared error:", error);
                 } else {
