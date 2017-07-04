@@ -308,7 +308,7 @@ window.App = {
                 document.getElementById("ticketCount").innerHTML = roundInfo.ticketCount;
                 document.getElementById("revealedCount").innerHTML = roundInfo.revealedCount;
                 document.getElementById("unRevealedCount").innerHTML = roundInfo.ticketCount - roundInfo.revealedCount;
-                document.getElementById("ticketCountLimit").innerHTML = roundInfo.ticketCountLimit;
+                document.getElementById("ticketCount2").innerHTML = roundInfo.ticketCount;
 
                 document.getElementById("revealPeriodLength1").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
                 document.getElementById("revealPeriodLength2").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
