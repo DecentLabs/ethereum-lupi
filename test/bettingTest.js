@@ -39,12 +39,12 @@ contract("Lupi betting tests", accounts => {
     }); // should be possible to play a round with 10 bets and winner
 
     it('should be possible to play a round with 10 bets and no winner', done => {
-        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "10b win",
+        var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "10b no win",
             ticketCountLimit: 10, betsToPlace: [2,3,6,5,9,3,9,5,6,2], toRevealCt: 10,
             expWinningIdx: 0, expWinningNumber: 0,
             bettingPeriodLength: 0, revealPeriodLength: 600, feePt: 10000,  requiredBetAmount: web3.toWei(1)});
         bettingHelper.runBettingTest( testParams )
         .then( res => { done(); });
-    }); // should be possible to play a round with 10 bets and no winner
+    }).timeout(120*60*1000 ); // should be possible to play a round with 10 bets and no winner
 
 }); // contract("Lupi betting tests)

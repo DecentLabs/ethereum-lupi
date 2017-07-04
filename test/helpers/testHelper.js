@@ -7,7 +7,8 @@ var gasUseLog = new Array();
 module.exports = {
     logGasUse: logGasUse,
     waitForTimeStamp: waitForTimeStamp,
-    expectThrow: expectThrow
+    expectThrow: expectThrow,
+    runInBatch: runInBatch
 }
 
 function logGasUse(roundName, tran, args, tx) {
@@ -19,7 +20,7 @@ function waitForTimeStamp(waitForTimeStamp) {
     var currentTimeStamp = moment().utc().unix();
     var wait =  waitForTimeStamp - currentTimeStamp;
     wait = wait < 0 ? 0 : wait;
-    console.log("... waiting ", wait, "seconds then sending a dummy tx for blockTimeStamp to reach time required by test ...");
+    console.log("\x1b[2m        ... waiting ", wait, "seconds then sending a dummy tx for blockTimeStamp to reach time required by test ...\x1b[0m");
 
     return new Promise( resolve => {
             setTimeout(function () {
@@ -54,13 +55,38 @@ function expectThrow (promise) {
         //       we distinguish this from an actual out of gas event? (The
         //       testrpc log actually show an 'invalid jump' event.)
         const outOfGas = error.message.search('out of gas') >= 0;
+        const outOfGasPrivateChain = error.message.search("The contract code couldn't be stored, please check your gas amount.") >= 0;
         const invalidOpcode1 = error.message.search('VM Exception while processing transaction: invalid opcode') >=0;
         const invalidOpcode2 = error.message.search("VM Exception while executing eth_call: invalid opcode") >= 0;
-        assert( invalidOpcode1 || invalidOpcode2 || invalidJump || outOfGas, "Expected solidity throw, got '" + error + "' instead", );
+        const onPrivateChain = web3.version.network == 1976 ? true : false; // set by .runprivatechain.sh (geth ...  --networkid 1976 ..)
+        assert( invalidOpcode1 || invalidOpcode2 || invalidJump || outOfGas || (outOfGasPrivateChain && onPrivateChain),
+            "Expected solidity throw, got '" + error + "' instead", );
         return ;
     });
 }; // expectThrow
 
+function runInBatch (dataArray, fnToMap, batchSize) {
+    return new Promise( async (resolve,reject) => {
+        try {
+            var actions, results, ret = new Array();
+            var start = 0, end = 0;
+            while ( start <  dataArray.length ) {
+                end = dataArray.length < start + batchSize ? dataArray.length : start + batchSize;
+                process.stdout.write("\r\x1b[2m        Sending " + fnToMap.name + " tx from: " + (start +1) + " to: "
+                                    + end + " from total of " + dataArray.length + "                       \x1b[0m");
+                actions = dataArray.slice(start, end).map( fnToMap );
+                results = Promise.all( actions );
+                ret.push( await results);
+                start += batchSize;
+            }
+            process.stdout.write("\n");
+            resolve(ret);
+        } catch( error) {
+            process.stdout.write("\n");
+            reject(error);
+        }
+    });
+} // runInBatch()
 
 after( function() {
     // runs after all tests

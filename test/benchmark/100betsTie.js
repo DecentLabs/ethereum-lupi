@@ -21,7 +21,7 @@ contract("Lupi 100 bets Tied", accounts => {
             bettingPeriodLength: 0, revealPeriodLength: 600, feePt: 10000,  requiredBetAmount: web3.toWei(1)});
         bettingHelper.runBettingTest( testParams)
         .then( res => { done(); });
-    })).timeout(120*60*1000 );; // sshould be possible to play a round with 100 bet with no winner
+    }).timeout(120*60*1000 );; // should be possible to play a round with 100 bet with no winner
 
 
 }); // contract("Lupi betting tests)

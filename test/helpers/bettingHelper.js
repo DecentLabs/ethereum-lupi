@@ -22,27 +22,31 @@ module.exports = {
 
 function runBettingTest( _testParams) {
     testParams = _testParams;
-    return _createGame(testParams).then( res => {
-        return _placeBets(testParams)
-    }).then( res => {
-        if( testParams.ticketCountLimit == 0 ) {
-            return _startRevealing();
-        } else {
-            return;
-        }
-    }).then( res => {
-        if (testParams.toRevealCt == 0) {
-            return;
-        } else {
-            return _revealBets(testParams);
-        }
-    }).then( res => {
-        return _declareWinner(testParams);
-    }).then( res => {
-        return _payWinnerOrRefund(testParams);
-    }).then( res => {
-        return Promise.resolve(testParams.gameInstance);
-    }); // return lupiManager.new...
+    return new Promise( (resolve, reject) => {
+        _createGame(testParams).then( res => {
+            return _placeBets(testParams)
+        }).then( res => {
+            if( testParams.ticketCountLimit == 0 ) {
+                return _startRevealing();
+            } else {
+                return;
+            }
+        }).then( res => {
+            if (testParams.toRevealCt == 0) {
+                return;
+            } else {
+                return _revealBets(testParams);
+            }
+        }).then( res => {
+            return _declareWinner(testParams);
+        }).then( res => {
+            return _payWinnerOrRefund(testParams);
+        }).then( res => {
+            resolve(testParams.gameInstance);
+        }).catch( error => {
+            reject(error);
+        }); // _createGame()
+    }); // return new Promise()
 } // runBettingTest()
 
 function TestParams( _testParams) {
@@ -77,6 +81,7 @@ function TestParams( _testParams) {
     var expWinningTicketId; // will be set by _placeBetFn
     this.revealStartTime = 0; //will be set after reveal;
     var lupiManagerInstance, gameInstance; // will be set in _createGame
+    this.batchSize = web3.version.network == 1976 ? 2 : 10; // set by .runprivatechain.sh (geth ...  --networkid 1976 ..)
 
 } // TestParams()
 
@@ -164,12 +169,10 @@ function _placeBets(_testParams) {
         _testParams.betsToPlace[i] = { number: num, amount: amount, playerAddress: player, idx: i };
     }
 
-    _testParams.revealStartTime = moment().utc().unix(); // if last bet triggers reveal
     var gameContractBalanceBefore = web3.eth.getBalance(_testParams.gameInstance.address);
     var playerBalanceBefore = web3.eth.getBalance(_testParams.playerAddressForBalanceCheck);
-    var placeBetActions = _testParams.betsToPlace.map(_placeBetFn);
-    var placeBetResults = Promise.all( placeBetActions );
-    return placeBetResults.then( betsTxs => {
+    return testHelper.runInBatch(_testParams.betsToPlace, _placeBetFn, _testParams.batchSize)
+    .then( res => {
         return _testParams.gameInstance.getRoundInfo();
     }).then( roundInfoRes => {
         var roundInfo = new lupiHelper.RoundInfo(roundInfoRes);
@@ -205,7 +208,7 @@ var _placeBetFn = bet => {
         testParams.gameInstance.sealBet(bet.number, testParams.salt, {from: bet.playerAddress})
         .then( sealRes => {
             bet.encryptedBet = sealRes;
-            return testParams.gameInstance.placeBet(sealRes, {from: bet.playerAddress, value: bet.amount});
+            return testParams.gameInstance.placeBet(bet.encryptedBet, { from: bet.playerAddress, value: bet.amount});
         }).then( tx => {
             bet.ticketId = tx.logs[0].args.ticketId.toNumber();
             testHelper.logGasUse(testParams.testCaseName, "placeBet()", "ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
@@ -214,6 +217,7 @@ var _placeBetFn = bet => {
             assert.equal(tx.logs[0].args.ticketId, bet.ticketId, "ticketId should be set in e_BetPlaced event");
             if( tx.logs.length == 2 ) { // ticketCountLimit reached, last bet
                 // TODO: make sure this event emmitted
+                testParams.revealStartTime = moment().utc().unix();
                 assert.equal(tx.logs[1].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after last bet");
                 assert(tx.logs[1].args.revealPeriodEnds >  testParams.revealPeriodLength + testParams.revealStartTime - 10, "revealPeriod end should be at least as expected in e_RevealStarted ");
                 assert(tx.logs[1].args.revealPeriodEnds < testParams.revealPeriodLength + testParams.revealStartTime + 10, "revealPeriod end should be at most as expected in e_RevealStarted ");
@@ -221,15 +225,15 @@ var _placeBetFn = bet => {
 
             resolve(tx);
         }).catch(error => {
-            testParams.gameInstance.getRoundInfo()
-            .then (res => {
-                var roundInfo = new lupiHelper.RoundInfo(res);
+            //testParams.gameInstance.getRoundInfo()
+            //.then (res => {
+            //    var roundInfo = new lupiHelper.RoundInfo(res);
                 // this can be unexpected OR expected when called with expectThrow so not cluttering output with it.
                 /* console.log("placeBet() error when placing bet.idx:", bet.idx, "RoundInfo: state:", roundInfo.state.toString(),
                         "ticketCountLimit:", roundInfo.ticketCountLimit, "bettingPeriodEnds:", roundInfo.bettingPeriodEnds,
                         "ticketCount:", roundInfo.ticketCount ); */
                 reject(error);
-            }); // getRoundInfo()
+            // }); // getRoundInfo()
         }); // revealBet()
     }); // return new Promise
 }; _placeBetFn
@@ -256,8 +260,10 @@ function _startRevealing(_testParams) {
 
 function _revealBets(_testParams) {
     testParams = _testParams;
-    var revealBetActions = _testParams.betsToPlace.slice(0, _testParams.toRevealCt).map(_revealBetFn);
-    return Promise.all( revealBetActions )
+    if (_testParams.revealStartTime == 0) { // first reveal will do startRevealing
+        _testParams.revealStartTime = moment().utc().unix();
+    }
+    return testHelper.runInBatch(_testParams.betsToPlace.slice(0, _testParams.toRevealCt), _revealBetFn, _testParams.batchSize )
     .then( res => {
         return _testParams.gameInstance.getRoundInfo();
     }).then ( roundInfoRes => {
@@ -347,9 +353,8 @@ function _payWinnerOrRefund(_testParams) {
     return new Promise( function(resolve, reject) {
         return new Promise( function(resolve, reject) {
             if(_testParams.expWinningNumber == 0 ) {
-                refundActions = _testParams.betsToPlace.map(_refundFn);
-                var refundResults = Promise.all(refundActions );
-                return refundResults.then( refundTxs => {
+                return testHelper.runInBatch(_testParams.betsToPlace, _refundFn, _testParams.batchSize)
+                .then( refundTxs => {
                     resolve( _testParams.gameInstance.getRoundInfo());
                 }).catch(error => {
                     reject(error);
@@ -385,12 +390,14 @@ function _payWinnerOrRefund(_testParams) {
 
 var _refundFn = bet => {
  // called for each betsToPlace[] via  Promise.all().
- return new Promise(resolve => resolve(
-     testParams.gameInstance.refund(bet.ticketId, {from: testParams.defaultTxAccount})
-     .then( refundTx => {
-         testHelper.logGasUse(testParams.testCaseName, "refund()", "ticketId: " + bet.ticketId + " | bet idx: "
-             + bet.idx + " | number: " + bet.number, refundTx);
-         return refundTx;
-     })
- )); // return new Promise
+ return new Promise( (resolve, reject) => {
+        testParams.gameInstance.refund(bet.ticketId, {from: testParams.defaultTxAccount})
+        .then( refundTx => {
+            testHelper.logGasUse(testParams.testCaseName, "refund()", "ticketId: " + bet.ticketId + " | bet idx: "
+                + bet.idx + " | number: " + bet.number, refundTx);
+            resolve(refundTx);
+        }).catch( error => {
+            reject(error);
+        }); // refund()
+    }); // return new Promise
 }; // _refundFn()
