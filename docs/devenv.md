@@ -50,7 +50,7 @@ in new terminal, from ethereum-lupi root folder:
 ```
 truffle migrate --reset
 ```
-or to deploy only LupiManager & Lupi:
+to redeploy only LupiManager:
 ```
 truffle migrate -f 2
 ```
@@ -64,9 +64,11 @@ TODO:
  * improve/automate build & deploy
  * geth testnet commandline security check (`--unlock 0` vs. ``--rpccorsdomain "*"``)
  * dockerize privatechain (Dockerfiles + docker-compose config)
+ * Could we connect to INFURA with `geth`? So we wouldn't need to wait for testnet to sync before every deploy
 
 # Testing
 `truffle test`  
 make sure you are:
 * running testrpc with_ `npm run testrpc:start` or
-* private chain with `./privatechain/runprivatechain.sh`
+* private chain with `cd privatechain;  ./runprivatechain.sh`  
+  _Note: some tests are failing on privatechain (see [issues](https://github.com/DecentLabs/ethereum-lupi/issues)) and it runs for ages_
