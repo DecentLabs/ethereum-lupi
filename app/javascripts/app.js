@@ -31,50 +31,59 @@ var gameInstance, lupiManagerInstance;
 window.App = {
     start: function() {
         var self = this;
+        return new Promise( (resolve, reject) => {
+            lupiManager.setProvider(web3.currentProvider);
+            Lupi.setProvider(web3.currentProvider);
 
-        lupiManager.setProvider(web3.currentProvider);
-        Lupi.setProvider(web3.currentProvider);
-
-        web3.eth.getAccounts(function(err, accs) {
-            if (err != null) {
-                self.setStatus('danger', "There was an error fetching your Ethereum accounts.");
-                console.error("Error getting account list: ", err);
-                document.getElementById("loadingDiv").style.display = "none";
-                document.getElementById("connectHelpDiv").style.display = "block";
-                return ;
-            }
-
-            if (accs.length == 0) {
-                self.setStatus('danger', "Couldn't get any accounts! Make sure your Ethereum client is configured correctly.");
-                console.error("Received no account in account list");
-                document.getElementById("loadingDiv").style.display = "none";
-                document.getElementById("connectHelpDiv").style.display = "block";
-                return ;
-            }
-
-            accounts = accs;
-            account = accounts[0];
-
-            lupiManager.deployed()
-            .then( res => {
-                lupiManagerInstance = res;
-                self.listenToLupiManagerEvents();
-                return lupiManagerInstance.owner();
-            }).then( res => {
-                document.getElementById("lupiManagerOwner").innerHTML = res;
-                if (res ==  "0x" ) {
-                    throw("lupiManager at " + lupiManager.address + " returned 0x owner() - not deployed?");
+            web3.eth.getAccounts(function(err, accs) {
+                if (err != null) {
+                    self.setStatus('danger', "There was an error fetching your Ethereum accounts.");
+                    console.error("Error getting account list: ", err);
+                    document.getElementById("loadingDiv").style.display = "none";
+                    document.getElementById("connectHelpDiv").style.display = "block";
+                    reject(error) ;
                 }
-                return self.refreshGameInstance();
-            }).then( res => {
-                    self.refreshUI();
-            }).catch( error => {
-                console.error("failed to connect LupiManager or Lupi", error);
-                document.getElementById("loadingDiv").style.display = "none";
-                App.setStatus('danger', "Can't find any game on Ethereum network. Are you on testnet?");
-                document.getElementById("connectHelpDiv").style.display = "block";
-            }); // lupiManager.deployed()
-        }); // getAccounts
+
+                if (accs.length == 0) {
+                    self.setStatus('danger', "Couldn't get any accounts! Make sure your Ethereum client is configured correctly.");
+                    console.error("Received no account in account list");
+                    document.getElementById("loadingDiv").style.display = "none";
+                    document.getElementById("connectHelpDiv").style.display = "block";
+                    reject(error);
+                }
+
+                accounts = accs;
+                account = accounts[0];
+
+                return lupiManager.deployed()
+                .then( res => {
+                    lupiManagerInstance = res;
+                    self.listenToLupiManagerEvents();
+                    return lupiManagerInstance.owner();
+                }).then( res => {
+                    document.getElementById("lupiManagerOwner").innerHTML = res;
+                    if (res ==  "0x" ) {
+                        throw("lupiManager at " + lupiManager.address + " returned 0x owner() - not deployed?");
+                    }
+                    return self.refreshGameInstance();
+                }).then( res => {
+                        self.refreshUI()
+                        .then( res => {
+                            resolve();
+                        });
+                }).catch( error => {
+                    document.getElementById("loadingDiv").style.display = "none";
+                    if(lupiManagerInstance.address != 0) {
+                        App.setStatus('danger', "No game started yet. Owner can add one.<br>( LupiManager at " + lupiManagerInstance.address +")");
+                        document.getElementById("connectHelpDiv").style.display = "none";
+                    } else {
+                        App.setStatus('danger', "Can't find any game on Ethereum network. Are you on testnet?");
+                        document.getElementById("connectHelpDiv").style.display = "block";
+                    }
+                    reject(error);
+                }); // lupiManager.deployed()
+            }); // getAccounts()
+        }); // return new Promise()
     }, // window.start
 
     refreshGameInstance: function() {
@@ -234,163 +243,167 @@ window.App = {
     },
 
     refreshUI: function() {
-        var self = this;
-        console.debug("refreshUI");
-        document.getElementById("loadingDiv").style.display = "block";
-        if (typeof(Storage) !== "undefined" && localStorage.length > 0) {
-            document.getElementById("backupDiv").style.display = "block";
-        }
-        document.getElementById("accountAddress").innerHTML = account;
-        if ( document.getElementById("accountInput").value == "" ) {
-            document.getElementById("accountInput").value = account;
-        }
-        document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
-
-        web3.eth.getBlockNumber(function(error, res) {
-            if (error) {
-                self.setStatus("<font color='red'>Error getting latest block; see log.</font>");
-                console.error("refreshUI().blockNumber() error", error);
-            } else {
-                document.getElementById("latestBlock").innerHTML = res;
-                web3.eth.getBlock( res, function(error, res) {
-                    if (error) {
-                        self.setStatus("<font color='red'>Error getting latest block data; see log.</font>");
-                        console.error("refreshUI().getBlock() error", error);
-                    } else {
-                        document.getElementById("blockTimeStamp").innerHTML = res.timestamp;
-                        document.getElementById("blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD MMM YYYY HH:mm:ss");
-                    }
-                });
+        return new Promise( (resolve, reject) => {
+            var self = this;
+            console.debug("refreshUI");
+            document.getElementById("loadingDiv").style.display = "block";
+            if (typeof(Storage) !== "undefined" && localStorage.length > 0) {
+                document.getElementById("backupDiv").style.display = "block";
             }
-        }); // getBlockNumber()
-
-        web3.eth.getBalance(account, function(error, res) {
-            if (error) {
-                self.setStatus("Error getting account balance; see log.");
-                console.error("refreshUI().getBalance(account) error", error);
-            } else {
-                document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();
+            document.getElementById("accountAddress").innerHTML = account;
+            if ( document.getElementById("accountInput").value == "" ) {
+                document.getElementById("accountInput").value = account;
             }
-        }); // getBalance(account)
+            document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
 
-        web3.eth.getBalance(gameInstance.address, function(error, res) {
-            if (error) {
-                self.setStatus("<font color='red'>Error getting contract balance; see log.</font>");
-                console.error("refreshUI().getBalance(gameInstance.address) error", error);
-            } else {
-                document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
-            }
-        }); // getBalance(gameInstance)
-
-        gameInstance.getRoundInfo()
-        .then( roundRes => {
-            var roundInfo = new LupiHelper.RoundInfo(roundRes);
-            document.getElementById("currentPotAmount").innerHTML = web3.fromWei(roundInfo.currentPotAmount);
-            document.getElementById("requiredBetAmount").innerHTML = web3.fromWei(roundInfo.requiredBetAmount);
-            document.getElementById("ticketCount").innerHTML = roundInfo.ticketCount;
-            document.getElementById("revealedCount").innerHTML = roundInfo.revealedCount;
-            document.getElementById("unRevealedCount").innerHTML = roundInfo.ticketCount - roundInfo.revealedCount;
-            document.getElementById("ticketCountLimit").innerHTML = roundInfo.ticketCountLimit;
-
-            document.getElementById("revealPeriodLength1").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
-            document.getElementById("revealPeriodLength2").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
-            var bettingPeriodEndsText = roundInfo.ticketCountLimit == 0 ? "" : "when " + roundInfo.ticketCountLimit + " bets are placed";
-            bettingPeriodEndsText += roundInfo.ticketCountLimit !== 0 && roundInfo.bettingPeriodEnds != 0 ? " or " : "";
-            bettingPeriodEndsText += roundInfo.bettingPeriodEnds == 0 ? "" : "latest on " + moment.unix(roundInfo.bettingPeriodEnds).format("DD MMM YYYY HH:mm:ss");
-            document.getElementById("bettingPeriodEndsText").innerHTML = bettingPeriodEndsText;
-            document.getElementById("revealPeriodEnds").innerHTML = moment.unix(roundInfo.revealPeriodEnds).format("DD MMM YYYY HH:mm:ss");
-            document.getElementById("roundInfoDebug").innerHTML = JSON.stringify(roundInfo,null, 4);
-            document.getElementById("winningNumber").innerHTML = roundInfo.winningNumber;
-            document.getElementById("winningAddress").innerHTML = roundInfo.winningAddress;
-
-            var guessDiv = document.getElementById("guessDiv");
-
-            var revealDiv = document.getElementById("revealDiv");
-            var revealFirstDiv = document.getElementById("revealFirstDiv");
-            var revealRunningDiv = document.getElementById("revealRunningDiv");
-            var revealStartOnlyDiv = document.getElementById("revealStartOnlyDiv");
-            var revealOverDiv = document.getElementById("revealOverDiv");
-            var revealOverAllRevealedDiv = document.getElementById("revealOverAllRevealedDiv");
-            var wonDiv = document.getElementById("wonDiv");
-            var tiedDiv = document.getElementById("tiedDiv");
-
-            var bettingOver = ( roundInfo.ticketCount == roundInfo.ticketCountLimit && roundInfo.ticketCountLimit != 0)
-                || ( roundInfo.bettingPeriodEnds <  moment().utc().unix()  && roundInfo.bettingPeriodEnds != 0);
-            var guessingOpen = roundInfo.state == 0 && !bettingOver;
-            var revealStart = roundInfo.state == 0 && bettingOver;
-            var revealRunning = roundInfo.state == 1 && roundInfo.revealedCount < roundInfo.ticketCount;
-            var revealOverNotAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount !== roundInfo.ticketCount &&
-                   roundInfo.revealPeriodEnds <  moment().utc().unix() ;
-            var revealOverAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount == roundInfo.ticketCount;
-            guessDiv.style.display =  guessingOpen ? "inline" : "none";
-
-            revealFirstDiv.style.display =  revealStart ? "inline" : "none";
-            revealRunningDiv.style.display =  revealRunning ? "inline" : "none";
-            revealDiv.style.display =  revealStart || revealRunning ? "inline" : "none";
-
-            if( revealStart || revealRunning ) {
-                var ticketsListDiv = document.getElementById("ticketsListDiv");
-                while (ticketsListDiv.hasChildNodes()) {
-                    ticketsListDiv.removeChild(ticketsListDiv.lastChild);
-                }
-                var tickets = JSON.parse( localStorage.getItem(gameInstance.address));
-                if ( tickets != null ) {
-                    var revealedNode = document.createElement("div");
-                    revealedNode.id = "revealedTicketsListDiv";
-                    var revealNode = document.createElement("div");
-                    revealNode.id = "revealTicketButtonsDiv";
-                    var buttonNode;
-                    for (var i=0; i < tickets.length; i++) {
-                        if (tickets[i].isRevealed) {
-                            //revealedNode.appendChild( document.createElement("br"));
-                            revealedNode.appendChild(  document.createTextNode("TicketId: " + tickets[i].ticketId
-                                + ", guess: " + tickets[i].guess + " | ") );
+            web3.eth.getBlockNumber(function(error, res) {
+                if (error) {
+                    self.setStatus("<font color='red'>Error getting latest block; see log.</font>");
+                    console.error("refreshUI().blockNumber() error", error);
+                } else {
+                    document.getElementById("latestBlock").innerHTML = res;
+                    web3.eth.getBlock( res, function(error, res) {
+                        if (error) {
+                            self.setStatus("<font color='red'>Error getting latest block data; see log.</font>");
+                            console.error("refreshUI().getBlock() error", error);
                         } else {
-                            buttonNode = document.createElement("button");
-                            buttonNode.id = "revealButton" + i;
-                            buttonNode.value = "Reveal ticket " + tickets[i].ticketId;
-                            buttonNode.ticket = tickets[i];
-                            buttonNode.appendChild(document.createTextNode(buttonNode.value));
-
-                            buttonNode.addEventListener('click', function(){
-                                App.revealBet(gameInstance.address, this.ticket);
-                            });
-                            revealNode.appendChild(buttonNode);
+                            document.getElementById("blockTimeStamp").innerHTML = res.timestamp;
+                            document.getElementById("blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD MMM YYYY HH:mm:ss");
                         }
-                    } // for each ticket in store
-                    ticketsListDiv.appendChild(revealNode);
-                    ticketsListDiv.appendChild(document.createElement("br"));
-                    ticketsListDiv.appendChild(document.createTextNode("Tickets you already revealed:"));
-                    ticketsListDiv.appendChild(revealedNode);
+                    });
                 }
-            }
-            revealStartOnlyDiv.style.display = revealStart ? "inline" : "none";
+            }); // getBlockNumber()
 
-            revealOverDiv.style.display = revealOverNotAllRevealed ? "inline" : "none";
-            revealOverAllRevealedDiv.style.display = revealOverAllRevealed ? "inline" : "none";
-            wonDiv.style.display = roundInfo.state == 2 ? "inline" : "none";
-            tiedDiv.style.display =  roundInfo.state == 3 ? "inline" : "none";
+            web3.eth.getBalance(account, function(error, res) {
+                if (error) {
+                    self.setStatus("Error getting account balance; see log.");
+                    console.error("refreshUI().getBalance(account) error", error);
+                } else {
+                    document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();
+                }
+            }); // getBalance(account)
 
-            var winnerAlreadyPayedDiv = document.getElementById("winnerAlreadyPayedDiv");
-            var payWinnerDiv = document.getElementById("payWinnerDiv");
-            if (roundInfo.state == 2  ) {
-                gameInstance.tickets(roundInfo.winningTicket)
-                .then( res => {
-                    var deposit = res[1].toNumber();
-                    winnerAlreadyPayedDiv.style.display = deposit == 0 ? "inline" : "none";
-                    payWinnerDiv.style.display = deposit > 0 ? "inline" : "none";
-                });
-            } else {
-                winnerAlreadyPayedDiv.style.display =  "none";
-                payWinnerDiv.style.display = "none";
-            }
-            document.getElementById("loadingDiv").style.display = "none";
+            web3.eth.getBalance(gameInstance.address, function(error, res) {
+                if (error) {
+                    self.setStatus("<font color='red'>Error getting contract balance; see log.</font>");
+                    console.error("refreshUI().getBalance(gameInstance.address) error", error);
+                } else {
+                    document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
+                    document.getElementById("connectHelpDiv").style.display = "none";
+                }
+            }); // getBalance(gameInstance)
 
-        }).catch(function(e) {
-            document.getElementById("loadingDiv").style.display = "none";
-            console.error("refreshUI() error", e);
-            self.setStatus('danger', "Error updating data; see log.");
-        });
+            gameInstance.getRoundInfo()
+            .then( roundRes => {
+                var roundInfo = new LupiHelper.RoundInfo(roundRes);
+                document.getElementById("currentPotAmount").innerHTML = web3.fromWei(roundInfo.currentPotAmount);
+                document.getElementById("requiredBetAmount").innerHTML = web3.fromWei(roundInfo.requiredBetAmount);
+                document.getElementById("ticketCount").innerHTML = roundInfo.ticketCount;
+                document.getElementById("revealedCount").innerHTML = roundInfo.revealedCount;
+                document.getElementById("unRevealedCount").innerHTML = roundInfo.ticketCount - roundInfo.revealedCount;
+                document.getElementById("ticketCountLimit").innerHTML = roundInfo.ticketCountLimit;
+
+                document.getElementById("revealPeriodLength1").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
+                document.getElementById("revealPeriodLength2").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
+                var bettingPeriodEndsText = roundInfo.ticketCountLimit == 0 ? "" : "when " + roundInfo.ticketCountLimit + " bets are placed";
+                bettingPeriodEndsText += roundInfo.ticketCountLimit !== 0 && roundInfo.bettingPeriodEnds != 0 ? " or " : "";
+                bettingPeriodEndsText += roundInfo.bettingPeriodEnds == 0 ? "" : "latest on " + moment.unix(roundInfo.bettingPeriodEnds).format("DD MMM YYYY HH:mm:ss");
+                document.getElementById("bettingPeriodEndsText").innerHTML = bettingPeriodEndsText;
+                document.getElementById("revealPeriodEnds").innerHTML = moment.unix(roundInfo.revealPeriodEnds).format("DD MMM YYYY HH:mm:ss");
+                document.getElementById("roundInfoDebug").innerHTML = JSON.stringify(roundInfo,null, 4);
+                document.getElementById("winningNumber").innerHTML = roundInfo.winningNumber;
+                document.getElementById("winningAddress").innerHTML = roundInfo.winningAddress;
+
+                var guessDiv = document.getElementById("guessDiv");
+
+                var revealDiv = document.getElementById("revealDiv");
+                var revealFirstDiv = document.getElementById("revealFirstDiv");
+                var revealRunningDiv = document.getElementById("revealRunningDiv");
+                var revealStartOnlyDiv = document.getElementById("revealStartOnlyDiv");
+                var revealOverDiv = document.getElementById("revealOverDiv");
+                var revealOverAllRevealedDiv = document.getElementById("revealOverAllRevealedDiv");
+                var wonDiv = document.getElementById("wonDiv");
+                var tiedDiv = document.getElementById("tiedDiv");
+
+                var bettingOver = ( roundInfo.ticketCount == roundInfo.ticketCountLimit && roundInfo.ticketCountLimit != 0)
+                    || ( roundInfo.bettingPeriodEnds <  moment().utc().unix()  && roundInfo.bettingPeriodEnds != 0);
+                var guessingOpen = roundInfo.state == 0 && !bettingOver;
+                var revealStart = roundInfo.state == 0 && bettingOver;
+                var revealRunning = roundInfo.state == 1 && roundInfo.revealedCount < roundInfo.ticketCount;
+                var revealOverNotAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount !== roundInfo.ticketCount &&
+                       roundInfo.revealPeriodEnds <  moment().utc().unix() ;
+                var revealOverAllRevealed = roundInfo.state == 1 && roundInfo.revealedCount == roundInfo.ticketCount;
+                guessDiv.style.display =  guessingOpen ? "inline" : "none";
+
+                revealFirstDiv.style.display =  revealStart ? "inline" : "none";
+                revealRunningDiv.style.display =  revealRunning ? "inline" : "none";
+                revealDiv.style.display =  revealStart || revealRunning ? "inline" : "none";
+
+                if( revealStart || revealRunning ) {
+                    var ticketsListDiv = document.getElementById("ticketsListDiv");
+                    while (ticketsListDiv.hasChildNodes()) {
+                        ticketsListDiv.removeChild(ticketsListDiv.lastChild);
+                    }
+                    var tickets = JSON.parse( localStorage.getItem(gameInstance.address));
+                    if ( tickets != null ) {
+                        var revealedNode = document.createElement("div");
+                        revealedNode.id = "revealedTicketsListDiv";
+                        var revealNode = document.createElement("div");
+                        revealNode.id = "revealTicketButtonsDiv";
+                        var buttonNode;
+                        for (var i=0; i < tickets.length; i++) {
+                            if (tickets[i].isRevealed) {
+                                //revealedNode.appendChild( document.createElement("br"));
+                                revealedNode.appendChild(  document.createTextNode("TicketId: " + tickets[i].ticketId
+                                    + ", guess: " + tickets[i].guess + " | ") );
+                            } else {
+                                buttonNode = document.createElement("button");
+                                buttonNode.id = "revealButton" + i;
+                                buttonNode.value = "Reveal ticket " + tickets[i].ticketId;
+                                buttonNode.ticket = tickets[i];
+                                buttonNode.appendChild(document.createTextNode(buttonNode.value));
+
+                                buttonNode.addEventListener('click', function(){
+                                    App.revealBet(gameInstance.address, this.ticket);
+                                });
+                                revealNode.appendChild(buttonNode);
+                            }
+                        } // for each ticket in store
+                        ticketsListDiv.appendChild(revealNode);
+                        ticketsListDiv.appendChild(document.createElement("br"));
+                        ticketsListDiv.appendChild(document.createTextNode("Tickets you already revealed:"));
+                        ticketsListDiv.appendChild(revealedNode);
+                    }
+                }
+                revealStartOnlyDiv.style.display = revealStart ? "inline" : "none";
+
+                revealOverDiv.style.display = revealOverNotAllRevealed ? "inline" : "none";
+                revealOverAllRevealedDiv.style.display = revealOverAllRevealed ? "inline" : "none";
+                wonDiv.style.display = roundInfo.state == 2 ? "inline" : "none";
+                tiedDiv.style.display =  roundInfo.state == 3 ? "inline" : "none";
+
+                var winnerAlreadyPayedDiv = document.getElementById("winnerAlreadyPayedDiv");
+                var payWinnerDiv = document.getElementById("payWinnerDiv");
+                if (roundInfo.state == 2  ) {
+                    gameInstance.tickets(roundInfo.winningTicket)
+                    .then( res => {
+                        var deposit = res[1].toNumber();
+                        winnerAlreadyPayedDiv.style.display = deposit == 0 ? "inline" : "none";
+                        payWinnerDiv.style.display = deposit > 0 ? "inline" : "none";
+                    });
+                } else {
+                    winnerAlreadyPayedDiv.style.display =  "none";
+                    payWinnerDiv.style.display = "none";
+                }
+                document.getElementById("loadingDiv").style.display = "none";
+                resolve();
+            }).catch(function(e) {
+                document.getElementById("loadingDiv").style.display = "none";
+                console.error("refreshUI() error", e);
+                reject(e);
+                self.setStatus('danger', "Error updating data; see log.");
+            });
+        }); // return new Promise()
     },
 
     placeBet: function() {
