@@ -751,13 +751,12 @@ window.App = {
         var ticketCountLimit = parseInt(document.getElementById("ticketCountLimitInput").value);
         var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
         var bettingPeriodLength = parseInt(document.getElementById("bettingPeriodLengthInput").value) * 60;
-        var bettingPeriodEnd = bettingPeriodLength == 0 ? 0 : bettingPeriodLength +  moment().utc().unix();
         var feePt = document.getElementById("feePtInput").value * 10000;
 
         web3.eth.getGasPrice( function(error, res ) {
             gasEstimate = LupiHelper.GAS.createGame.gas;
             var gasPrice = Math.round(LupiHelper.GAS.createGame.price * res);
-            lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd, revealPeriodLength, feePt,
+            lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt,
                      {from: account, gas: gasEstimate, gasPrice: gasPrice})
             .then( tx => {
                 console.debug("createGame() gas used:" , tx.receipt.gasUsed);

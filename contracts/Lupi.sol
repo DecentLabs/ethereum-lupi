@@ -33,16 +33,17 @@ contract Lupi is owned {
 
     uint public winningTicket;
 
-    // TODO: function getBets(address _player) constant returns bets[]
-
-    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _bettingPeriodEnd, uint _revealPeriodLength, uint _feePt ) {
-        require(_ticketCountLimit > 0 || _bettingPeriodEnd > now);
-        require(_bettingPeriodEnd > now || _bettingPeriodEnd == 0);
+    function Lupi(uint _requiredBetAmount, uint _ticketCountLimit, uint _bettingPeriodLength, uint _revealPeriodLength, uint _feePt ) {
+        require(_ticketCountLimit > 0 || _bettingPeriodLength > 0);
         require(_requiredBetAmount * _feePt / 1000000 < _requiredBetAmount);
         requiredBetAmount = _requiredBetAmount;
         ticketCountLimit = _ticketCountLimit;
         revealPeriodLength = _revealPeriodLength;
-        bettingPeriodEnds = _bettingPeriodEnd;
+        if (_bettingPeriodLength == 0) {
+            bettingPeriodEnds = 0;
+        } else {
+            bettingPeriodEnds = _bettingPeriodLength + now;
+        }
         feePt = _feePt;
         // ticket zero is reserved
         tickets.length = 1;

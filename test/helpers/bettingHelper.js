@@ -64,7 +64,7 @@ function TestParams( _testParams) {
     this.bettingPeriodLength = _testParams.bettingPeriodLength;
     this.revealPeriodLength = _testParams.revealPeriodLength;
     this.bettingPeriodEnd = this.bettingPeriodLength == 0 ? 0 :
-                            this.bettingPeriodLength + moment().utc().unix();;
+                            this.bettingPeriodLength + moment().utc().unix();
     this.feePt = _testParams.feePt;
     this.requiredBetAmount = _testParams.requiredBetAmount;
 
@@ -92,7 +92,7 @@ function _createGame( _testParams) {
         return _testParams.lupiManagerInstance.owner();
     }).then( res => {
         assert(_testParams.lupiManagerOwnerAddress, res, "lupiManagerOwnerAddress should be set");
-        return _testParams.lupiManagerInstance.createGame(_testParams.requiredBetAmount, _testParams.ticketCountLimit, _testParams.bettingPeriodEnd,
+        return _testParams.lupiManagerInstance.createGame(_testParams.requiredBetAmount, _testParams.ticketCountLimit, _testParams.bettingPeriodLength,
              _testParams.revealPeriodLength, _testParams.feePt, { from: _testParams.lupiManagerOwnerAddress, gas: 1200000});
     }).then( tx => {
         testHelper.logGasUse(_testParams.testCaseName, "lupiManager.createGame()",
@@ -128,7 +128,8 @@ function _createGame( _testParams) {
         assert.equal(roundInfo.state, 0, "new game state should be betting");
         assert.equal(roundInfo.requiredBetAmount.toString(), _testParams.requiredBetAmount.toString(), "new game requiredBetAmount should be set");
         assert.equal(roundInfo.ticketCountLimit, _testParams.ticketCountLimit, "new game ticketCountLimit should be set");
-        assert.equal(roundInfo.bettingPeriodEnds, _testParams.bettingPeriodEnd, "new game bettingPeriodEnd should be set");
+        assert(roundInfo.bettingPeriodEnds >= _testParams.bettingPeriodEnd - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
+        assert(roundInfo.bettingPeriodEnds <= _testParams.bettingPeriodEnd + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
         assert.equal(roundInfo.revealPeriodLength, _testParams.revealPeriodLength, "new game revealPeriodLength should be set");
         assert.equal(roundInfo.feePt, _testParams.feePt, "new game feePt should be set");
 

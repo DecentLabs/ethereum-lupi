@@ -10,11 +10,11 @@ contract("Lupi admin tests", accounts => {
         var instance, ownerAddress;
         var requiredBetAmount = new BigNumber( web3.toWei(1));
         var ticketCountLimit = 2;
-        var bettingPeriodEnds = 0;
+        var bettingPeriodLength = 20;
         var feePt = 10000;
         var revealPeriodLength = 14400;
 
-        return lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodEnds, revealPeriodLength, feePt)
+        return lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt)
         .then( contractInstance => {
             instance = contractInstance;
             return instance.owner();
@@ -26,14 +26,14 @@ contract("Lupi admin tests", accounts => {
             assert.equal(roundInfo.state, 0, "state should be 'Betting' (0)");
             assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
             assert.equal(roundInfo.feePt, feePt, "feePt should be set");
-            assert.equal(roundInfo.bettingPeriodEnds, bettingPeriodEnds, "bettingPeriodEnds should be set");
+            assert(roundInfo.bettingPeriodEnds >= moment().utc().unix() + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
+            assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
             assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "ticketCountLimit should be set");
             assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "revealPeriodLength should be set");
             assert.equal(roundInfo.ticketCount, 0, "ticketCount should be 0");
             assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
             assert.equal(roundInfo.feeAmount, 0, "feeAmount should be 0");
-            var expGuaranteedPotAmount = requiredBetAmount.times(ticketCountLimit).times( 1 - feePt / 1000000);
-            assert.equal(roundInfo.guaranteedPotAmount.toString(), expGuaranteedPotAmount.toString(), "guaranteedPotAmount should be set");
+            assert.equal(roundInfo.guaranteedPotAmount.toString(), "0", "guaranteedPotAmount should be set");
             assert.equal(roundInfo.currentPotAmount, 0, "currentPotAmount should be 0");
             assert.equal(roundInfo.winningTicket, 0, "winningTicket should be 0");
             assert.equal(roundInfo.winningAddress, 0, "winningAddress should be 0");
@@ -88,14 +88,9 @@ contract("Lupi admin tests", accounts => {
         return helper.expectThrow( lupi.new(web3.toWei(1), 1, 0, 1, 1000000, { account: accounts[0], gas: 3000000}));
     }); // feeAmount should be less than requiredBetAmount
 
-    it('ticketCount limit should be greater than 0 if bettingPeriodEnds = 0', () => {
-        return helper.expectThrow( lupi.new(web3.toWei(1), 0, 60, 60, 10000, { account: accounts[0], gas: 3000000}));
+    it('ticketCount limit should be greater than 0 if bettingPeriodLength = 0', () => {
+        return helper.expectThrow( lupi.new(web3.toWei(1), 0, 0, 60, 10000, { account: accounts[0], gas: 3000000}));
     }); // ticketCount limit should be greater than 0 if bettingPeriodEnds = 0
-
-    it("bettingPeriodEnd should be greater than now if it's not 0", () => {
-        var bettingPeriodEnds = moment().utc().unix();
-        return helper.expectThrow( lupi.new(web3.toWei(1), 10, bettingPeriodEnds, 60, 10000, { account: accounts[0], gas: 3000000}));
-    }); // bettingPeriodEnd should be greater than now if it's not 0
 
     it('should be possible to schedule startRevealing');
     it('should be possible to schedule revealBet');

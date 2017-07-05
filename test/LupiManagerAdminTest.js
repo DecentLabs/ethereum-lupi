@@ -46,7 +46,7 @@ contract("LupiManager Admin tests", accounts => {
         var instance, gameInstance, gameIdx, gameAddress, lupiManagerOwnerAddress;
         var requiredBetAmount = new BigNumber( web3.toWei(1));
         var ticketCountLimit = 2;
-        var bettingPeriodEnd = moment().utc().unix() + 600;
+        var bettingPeriodLength = 600;
         var feePt = 10000;
         var revealPeriodLength = 14400;
 
@@ -56,7 +56,7 @@ contract("LupiManager Admin tests", accounts => {
             return instance.owner();
         }).then( res => {
             lupiManagerOwnerAddress = res;
-            return instance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodEnd,
+            return instance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength,
                  revealPeriodLength, feePt, { gas: 1200000});
         }).then( tx => {
             testHelper.logGasUse("LupiManager", "LupiManager.createGame()", "", tx);
@@ -84,7 +84,8 @@ contract("LupiManager Admin tests", accounts => {
             assert.equal(roundInfo.state, 0, "new game state should be betting");
             assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "new game requiredBetAmount should be set");
             assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "new game ticketCountLimit should be set");
-            assert.equal(roundInfo.bettingPeriodEnds, bettingPeriodEnd, "new game bettingPeriodEnd should be set");
+            assert(roundInfo.bettingPeriodEnds >= moment().utc().unix() + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
+            assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
             assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "new game revealPeriodLength should be set");
             assert.equal(roundInfo.feePt, feePt, "new game feePt should be set");
         });
