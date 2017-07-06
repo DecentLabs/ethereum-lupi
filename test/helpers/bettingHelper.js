@@ -93,7 +93,7 @@ function _createGame( _testParams) {
     }).then( res => {
         assert(_testParams.lupiManagerOwnerAddress, res, "lupiManagerOwnerAddress should be set");
         return _testParams.lupiManagerInstance.createGame(_testParams.requiredBetAmount, _testParams.ticketCountLimit, _testParams.bettingPeriodLength,
-             _testParams.revealPeriodLength, _testParams.feePt, { from: _testParams.lupiManagerOwnerAddress, gas: 1200000});
+             _testParams.revealPeriodLength, _testParams.feePt, { from: _testParams.lupiManagerOwnerAddress, gas: lupiHelper.GAS.createGame.gas});
     }).then( tx => {
         testHelper.logGasUse(_testParams.testCaseName, "lupiManager.createGame()",
                             "requiredBetAmount: " +  web3.fromWei(_testParams.requiredBetAmount)
@@ -209,7 +209,8 @@ var _placeBetFn = bet => {
         testParams.gameInstance.sealBet(bet.number, testParams.salt, {from: bet.playerAddress})
         .then( sealRes => {
             bet.encryptedBet = sealRes;
-            return testParams.gameInstance.placeBet(bet.encryptedBet, { from: bet.playerAddress, value: bet.amount});
+            return testParams.gameInstance.placeBet(bet.encryptedBet,
+                    { from: bet.playerAddress, value: bet.amount, gas: lupiHelper.GAS.placeBetLast.gas});
         }).then( tx => {
             bet.ticketId = tx.logs[0].args.ticketId.toNumber();
             testHelper.logGasUse(testParams.testCaseName, "placeBet()", "ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
@@ -241,7 +242,7 @@ var _placeBetFn = bet => {
 
 function _startRevealing(_testParams) {
     _testParams.revealStartTime = moment().utc().unix();
-    return _testParams.gameInstance.startRevealing({from: _testParams.defaultTxAccount})
+    return _testParams.gameInstance.startRevealing({from: _testParams.defaultTxAccount, gas: lupiHelper.GAS.startRevealing.gas})
     .then( res => {
         testHelper.logGasUse(_testParams.testCaseName, "startRevealing()", "", res);
         assert.equal(res.logs[0].event, "e_RevealStarted", "e_RevealStarted event should be emmitted after startRevealing()");
@@ -282,7 +283,8 @@ function _revealBets(_testParams) {
 var _revealBetFn = bet => {
     // called for each betsToPlace[] via  Promise.all().
     return new Promise(function (resolve, reject) {
-        testParams.gameInstance.revealBet(bet.ticketId, bet.number, testParams.salt, {from: bet.playerAddress})
+        testParams.gameInstance.revealBet(bet.ticketId, bet.number, testParams.salt,
+                { from: bet.playerAddress, gas: lupiHelper.GAS.revealBetFirst.gas} ) // TODO: add logic to use lupiHelper.GAS.revealBet too
         .then( revealTx => {
             var revealedEventIdx = 0;
             if( revealTx.logs.length == 2 ) { // this is the first reveal
@@ -319,7 +321,8 @@ function _declareWinner(_testParams) {
     var gameContractBalanceBefore = web3.eth.getBalance(_testParams.gameInstance.address);
     var gameOwnerBalanceBefore = web3.eth.getBalance(_testParams.gameOwnerAddress);
     // console.log("****** declareWinner", roundInfo.revealPeriodEnds, moment().utc().unix(), web3.eth.getBlock(web3.eth.blockNumber).timestamp);
-    return _testParams.gameInstance.declareWinner({ from: _testParams.defaultTxAccount})
+    return _testParams.gameInstance.declareWinner({ from: _testParams.defaultTxAccount,
+            gas: lupiHelper.GAS.declareWinner.gasBase + lupiHelper.GAS.declareWinner.gasPerGuess * _testParams.toRevealCt })
     .then( tx => {
         testHelper.logGasUse(_testParams.testCaseName, "declareWinner()", "", tx);
         _testParams.expWinningTicketId = (_testParams.expWinningNumber == 0) ? 0 :  _testParams.betsToPlace[_testParams.expWinningIdx-1].ticketId;
@@ -361,7 +364,7 @@ function _payWinnerOrRefund(_testParams) {
                     reject(error);
                 });
             } else {
-                return _testParams.gameInstance.payWinner({from: _testParams.defaultTxAccount})
+                return _testParams.gameInstance.payWinner( { from: _testParams.defaultTxAccount, gas: lupiHelper.GAS.payWinner.gas} )
                 .then( tx => {
                     testHelper.logGasUse(_testParams.testCaseName, "payWinner()", "", tx);
                     resolve( _testParams.gameInstance.getRoundInfo());
@@ -392,7 +395,7 @@ function _payWinnerOrRefund(_testParams) {
 var _refundFn = bet => {
  // called for each betsToPlace[] via  Promise.all().
  return new Promise( (resolve, reject) => {
-        testParams.gameInstance.refund(bet.ticketId, {from: testParams.defaultTxAccount})
+        testParams.gameInstance.refund(bet.ticketId, { from: testParams.defaultTxAccount, gas: lupiHelper.GAS.refund.gas })
         .then( refundTx => {
             testHelper.logGasUse(testParams.testCaseName, "refund()", "ticketId: " + bet.ticketId + " | bet idx: "
                 + bet.idx + " | number: " + bet.number, refundTx);
