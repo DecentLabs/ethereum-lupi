@@ -27,8 +27,22 @@ module.exports = {
     Ticket: Ticket,
     RoundInfo: RoundInfo,
     toHexString: toHexString,
+    getDefaultGasPrice: getDefaultGasPrice,
     GAS: GAS
 }
+
+async function getDefaultGasPrice() {
+    return new Promise( async function (resolve, reject) {
+        web3.eth.getGasPrice( function(error,res) {
+        if( error) {
+            console.error("getDefaultGasPrice () error.", error);
+            reject(error);
+        }
+        var defaultGasPrice = typeof res == "undefined" || res.toNumber() == 0 ? 20000000 : res.toNumber();
+        resolve(defaultGasPrice);
+        }); // getGasPrice
+    }); // return new Promise
+} // getDefaultGasPrice
 
 function Ticket(ticketId, guess, salt, account, isRevealed) {
     this.ticketId = ticketId;
