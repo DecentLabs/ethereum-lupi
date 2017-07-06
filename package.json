@@ -8,7 +8,11 @@
     "dev": "NODE_ENV=development webpack-dev-server --progress --colors --content-base build/  --watch --hot --inline --config  webpack.config.js",
     "testrpc:start": "./runtestrpc.sh",
     "testrpc:install": "npm install -g ethereumjs-testrpc",
-    "truffle:install": "npm install -g truffle"
+    "truffle:install": "npm install -g truffle",
+    "bridge:deploy": "echo 'Deploying a new ethereum-bridge! Do not do it if you already deployed it, use npm run bridge instead' && cd ethereum-bridge && n use 6.9.1 bridge -H localhost:8545 -a 0 --dev --key ../d912aecb07e9f4e1ea8e6b4779e7fb6aa1c3e4d.json --non-interactive",
+    "bridge:start": "echo 'Reconnecting to an already deployed bridge instance at deterministic OAR. If you run it first time on testrpc / private chain then use npm run bridge:deploy first.' && cd ethereum-bridge && n use 6.9.1 bridge -H localhost:8545 -a 0 --dev --key ../d912aecb07e9f4e1ea8e6b4779e7fb6aa1c3e4d.json --non-interactive --oar 0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475",
+    "bridge:latest": "cd ethereum-bridge && n use 6.9.1 bridge --instance latest",
+    "bridge:install": "cd ethereum-bridge && npm install"
   },
   "author": "DECENT",
   "license": "GPL-3",

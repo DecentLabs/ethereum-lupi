@@ -246,60 +246,70 @@ window.App = {
             // TODO: clear up errorhandling jungle + split this function
             var self = this;
             console.debug("refreshUI");
-            document.getElementById("loadingDiv").style.display = "block";
-            if (typeof(Storage) !== "undefined" && localStorage.length > 0) {
-                document.getElementById("backupDiv").style.display = "block";
-            }
-            document.getElementById("accountAddress").innerHTML = account;
-            if ( document.getElementById("accountInput").value == "" ) {
-                document.getElementById("accountInput").value = account;
-            }
-            document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
-
-            web3.eth.getBlockNumber(function(error, res) {
-                if (error) {
-                    self.setStatus("<font color='red'>Error getting latest block; see log.</font>");
-                    console.error("refreshUI().blockNumber() error", error);
-                } else {
-                    document.getElementById("latestBlock").innerHTML = res;
-                    web3.eth.getBlock( res, function(error, res) {
-                        if (error) {
-                            self.setStatus("<font color='red'>Error getting latest block data; see log.</font>");
-                            console.error("refreshUI().getBlock() error", error);
-                        } else {
-                            document.getElementById("blockTimeStamp").innerHTML = res.timestamp;
-                            document.getElementById("blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD MMM YYYY HH:mm:ss");
-                        }
-                    });
-                }
-            }); // getBlockNumber()
-
-            // would be greate to have Promises... (web3 1.0 will have... https://ethereum.stackexchange.com/questions/11444/web3-js-with-promisified-api)
-            // var latestBlock = await web3.eth.getBlockNumber();
-            // var blockTimeStamp = await web3.eth.getBlock(latestBlock);
-            // $("#blockTimeStamp").innerHTML = res.timestamp;
-            // $("#blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD MMM YYYY HH:mm:ss");
-
-            web3.eth.getBalance(account, function(error, res) {
-                if (error) {
-                    self.setStatus("Error getting account balance; see log.");
-                    console.error("refreshUI().getBalance(account) error", error);
-                } else {
-                    document.getElementById("accountBalance").innerHTML = web3.fromWei(res).valueOf();
-                }
-            }); // getBalance(account)
-
-            web3.eth.getBalance(gameInstance.address, function(error, res) {
-                if (error) {
-                    self.setStatus("<font color='red'>Error getting contract balance; see log.</font>");
-                    console.error("refreshUI().getBalance(gameInstance.address) error", error);
-                } else {
-                    document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
-                    document.getElementById("connectHelpDiv").style.display = "none";
-                }
-            }); // getBalance(gameInstance)
-
             try {
+                document.getElementById("loadingDiv").style.display = "block";
+                if (typeof(Storage) !== "undefined" && localStorage.length > 0) {
+                    document.getElementById("backupDiv").style.display = "block";
+                }
+                document.getElementById("accountAddress").innerHTML = account;
+                if ( document.getElementById("accountInput").value == "" ) {
+                    document.getElementById("accountInput").value = account;
+                }
+                document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
+
+                web3.eth.getBlockNumber(function(error, res) {
+                    if (error) {
+                        console.error("refreshUI().getBlockNumber() error", error);
+                        throw(error);
+                    } else {
+                        document.getElementById("latestBlock").innerHTML = res;
+                        web3.eth.getBlock( res, function(error, res) {
+                            if (error) {
+                                console.error("refreshUI().getBlock() error", error);
+                                throw(error);
+                            } else {
+                                document.getElementById("blockTimeStamp").innerHTML = res.timestamp;
+                                document.getElementById("blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD MMM YYYY HH:mm:ss");
+                            }
+                        });
+                    }
+                }); // getBlockNumber()
+
+                // would be greate to have Promises... (web3 1.0 will have... https://ethereum.stackexchange.com/questions/11444/web3-js-with-promisified-api)
+                // var latestBlock = await web3.eth.getBlockNumber();
+                // var blockTimeStamp = await web3.eth.getBlock(latestBlock);
+                // $("#blockTimeStamp").innerHTML = res.timestamp;
+                // $("#blockTimeStampFormatted").innerHTML = moment.unix(res.timestamp).format("DD MMM YYYY HH:mm:ss");
+
+
+                web3.eth.getBalance(account, function(error, res) {
+                    if (error) {
+                        console.error("refreshUI().getBalance(account) error", error);
+                        throw(error);
+                    } else {
+                        $("#accountBalance").text(  web3.fromWei(res).valueOf() );
+                    }
+                });
+
+                web3.eth.getBalance(lupiManagerInstance.address, function(error, res) {
+                    if (error) {
+                        console.error("refreshUI().getBalance(lupiManagerInstance.address) error", error);
+                        throw(error);
+                    } else {
+                        $("#lupiManagerBalance").text( web3.fromWei(res).valueOf() );
+                    }
+                });
+
+                web3.eth.getBalance(gameInstance.address, function(error, res) {
+                    if (error) {
+                        console.error("refreshUI().getBalance(gameInstance.address) error", error);
+                        throw(error);
+                    } else {
+                        document.getElementById("contractBalance").innerHTML = web3.fromWei(res).valueOf();
+                        document.getElementById("connectHelpDiv").style.display = "none";
+                    }
+                }); // getBalance(gameInstance)
+
                 var roundInfo = new LupiHelper.RoundInfo( await gameInstance.getRoundInfo());
                 document.getElementById("currentPotAmount").innerHTML = web3.fromWei(roundInfo.currentPotAmount);
                 document.getElementById("requiredBetAmount").innerHTML = web3.fromWei(roundInfo.requiredBetAmount);
@@ -716,8 +726,21 @@ window.App = {
             if( tx.receipt.gasUsed == gasEstimate) {
                 throw("createGame error, all gas used: " + tx.receipt.gasUsed);
             }
+            var scheduleStatus;
+            try {
+                if( bettingPeriodLength > 0 ) {
+                    await self.scheduleStartRevealing(tx.logs[2].args.gameAddress);
+                    scheduleStatus = "<br>Automatic reveal scheduled."
+                } else {
+                    scheduleStatus = "<br>Didn't schedule automatic reveal because betting period end is not set."
+                }
+            } catch (error) {
+                console.error("error with scheduleStartRevealing", error);
+                scheduleStatus = "<br><strong>ERROR:</strong> Couldn't schedule automatic revealing. Does the LupiManager have enough balance? Please check logs.";
+            }
             self.setStatus('success', "Game created. Idx: " + tx.logs[2].args.gameIdx
-            + " address: " + tx.logs[1].args.gameAddress);
+            + " address: " + tx.logs[1].args.gameAddress
+            + scheduleStatus );
             $('#createGameDivModal').modal('hide');
         } catch(error) {
             console.error("createGame() error", error);
@@ -725,6 +748,31 @@ window.App = {
         } // try-catch
     },
 
+    scheduleStartRevealing: function(gameAddress) {
+        return new Promise( async function (resolve, reject) {
+            var self = this;
+            try {
+                var gasEstimate = LupiHelper.GAS.scheduleStartRevealing.gas;
+
+                var gasPrice = Math.round(LupiHelper.GAS.scheduleStartRevealing.price * await LupiHelper.getDefaultGasPrice());
+                var tx = await lupiManagerInstance.scheduleStartRevealing( gameAddress, LupiHelper.GAS.startRevealingCallBack.gas,
+                                {from: account, gas: gasEstimate, gasPrice: gasPrice})
+                var queryId = tx.logs[0].args.queryId;
+                if (typeof queryId == "undefined") {
+                    var errorMsg = tx.logs[0].args.error;
+                    throw("scheduleStartRevealing error. Error received instead of queryId: " + errorMsg);
+                }
+                console.debug("scheduleStartRevealing() Oraclize queryId:" , queryId);
+                console.debug("scheduleStartRevealing() gas used:" , tx.receipt.gasUsed);
+                if( tx.receipt.gasUsed == gasEstimate) {
+                    throw("scheduleStartRevealing error. All gas used: " + tx.receipt.gasUsed, tx);
+                }
+                resolve(tx);
+            } catch(error) {
+                reject(error);
+            } // try-catch
+        }); // return new Promise
+    } // scheduleStartRevealing
 };
 
 window.addEventListener('load', function() {

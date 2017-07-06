@@ -67,10 +67,4 @@ contract("Lupi admin tests", accounts => {
         return helper.expectThrow( lupi.new(web3.toWei(1), 0, 0, 60, 10000, { account: accounts[0], gas: 3000000}));
     }); // ticketCount limit should be greater than 0 if bettingPeriodEnds = 0
 
-    it('should be possible to schedule startRevealing');
-    it('should be possible to schedule revealBet');
-    it('should be possible to schedule declareWinner');
-    it('should be possible to schedule payWinner');
-    it('should be possible to schedule refund');
-
 }); // contract("lupi")

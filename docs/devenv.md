@@ -9,6 +9,8 @@
 git clone --recursive https://github.com/DecentLabs/ethereum-lupi.git
 cd ethereum-lupi
 npm install
+cd ethereum-bridge
+npm install
 ```
 * [testrpc](https://github.com/ethereumjs/testrpc) (global install): `npm run testrpc:install`
 * [truffle](http://truffleframework.com/docs/getting_started/installation) (global install): `npm run truffle:install`
@@ -16,9 +18,11 @@ npm install
 ## Deploy to testprc
 ```
 npm run testrpc:start
+npm run bridge:deploy
 npm run truffle:migrate
 npm run dev
 ```
+Note: use `npm run bridge:start` or `npm run bridge:latest` to launch bridge again when bridge contracts are alredy deployed.
 
 * Optional: An improved and customized [Ethereum explorer fork](https://github.com/szerintedmi/explorer)
 
@@ -34,11 +38,12 @@ cd privatechain
 cd privatechain
 ./runprivatechain.sh
 ```
-in new terminal, from ethereum-lupi root folder:
+to deploy all contracts: in new terminal, from ethereum-lupi root folder:
 ```
+npm run bridge:deploy
 truffle migrate --reset
 ```
-or to deploy only a new LupiManager & Lupi:
+or to deploy only a new LupiManager:
 ```
 truffle migrate -f 2
 ```
