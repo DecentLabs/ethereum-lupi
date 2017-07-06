@@ -6,85 +6,60 @@ var moment = require('moment');
 
 contract("Lupi admin tests", accounts => {
 
-    it('contract should be setup with initial parameters', () => {
-        var instance, ownerAddress;
+    it('contract should be setup with initial parameters', async function () {
         var requiredBetAmount = new BigNumber( web3.toWei(1));
         var ticketCountLimit = 2;
         var bettingPeriodLength = 20;
         var feePt = 10000;
         var revealPeriodLength = 14400;
 
-        return lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt)
-        .then( contractInstance => {
-            instance = contractInstance;
-            return instance.owner();
-        }).then( ownerRes => {
-            ownerAddress = ownerRes;
-            return instance.getRoundInfo()
-        }).then( res => {
-            var roundInfo = new lupiHelper.RoundInfo(res);
-            assert.equal(roundInfo.state, 0, "state should be 'Betting' (0)");
-            assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
-            assert.equal(roundInfo.feePt, feePt, "feePt should be set");
-            assert(roundInfo.bettingPeriodEnds >= moment().utc().unix() + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
-            assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
-            assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "ticketCountLimit should be set");
-            assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "revealPeriodLength should be set");
-            assert.equal(roundInfo.ticketCount, 0, "ticketCount should be 0");
-            assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
-            assert.equal(roundInfo.feeAmount, 0, "feeAmount should be 0");
-            assert.equal(roundInfo.guaranteedPotAmount.toString(), "0", "guaranteedPotAmount should be set");
-            assert.equal(roundInfo.currentPotAmount, 0, "currentPotAmount should be 0");
-            assert.equal(roundInfo.winningTicket, 0, "winningTicket should be 0");
-            assert.equal(roundInfo.winningAddress, 0, "winningAddress should be 0");
-            assert.equal(roundInfo.winningNumber, 0, "winningNumber should be set");
-            assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0");
-        });
+        var instance = await lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt);
+        var ownerAddress = await instance.owner();
+        var roundInfo = new lupiHelper.RoundInfo( await instance.getRoundInfo() );
+        assert.equal(roundInfo.state, 0, "state should be 'Betting' (0)");
+        assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
+        assert.equal(roundInfo.feePt, feePt, "feePt should be set");
+        assert(roundInfo.bettingPeriodEnds >= moment().utc().unix() + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
+        assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
+        assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "ticketCountLimit should be set");
+        assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "revealPeriodLength should be set");
+        assert.equal(roundInfo.ticketCount, 0, "ticketCount should be 0");
+        assert.equal(roundInfo.revealedCount, 0, "revealedCount should be 0");
+        assert.equal(roundInfo.feeAmount, 0, "feeAmount should be 0");
+        assert.equal(roundInfo.guaranteedPotAmount.toString(), "0", "guaranteedPotAmount should be set");
+        assert.equal(roundInfo.currentPotAmount, 0, "currentPotAmount should be 0");
+        assert.equal(roundInfo.winningTicket, 0, "winningTicket should be 0");
+        assert.equal(roundInfo.winningAddress, 0, "winningAddress should be 0");
+        assert.equal(roundInfo.winningNumber, 0, "winningNumber should be set");
+        assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0");
     });
 
-    it('should be possible to change owner', () => {
+    it('should be possible to change owner', async function () {
         var newOwner = accounts[1];
-        var instance, ownerAddress;
-
-        return lupi.new(web3.toWei(1), 2, 0, 60, 10000)
-        .then( contractInstance => {
-            instance = contractInstance;
-            return instance.owner();
-        }).then( ownerRes => {
-            ownerAddress = ownerRes;
-            return instance.setOwner(newOwner, { from: ownerAddress })
-        }).then( tx => {
-            helper.logGasUse("Change Owner", "setOwner()", "by owner", tx);
-            assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
-            assert.equal(tx.logs[0].args.old, ownerAddress, "old owner should be set in event");
-            assert.equal(tx.logs[0].args.current, newOwner, "new owner should be set in event");
-            return instance.owner();
-        }).then ( ownerRes => {
-            assert.equal(ownerRes, newOwner, "owner() should return the new owner");
-        });
+        var instance = await lupi.new(web3.toWei(1), 2, 0, 60, 10000);
+        var ownerAddress = await instance.owner();
+        var tx = await instance.setOwner(newOwner, { from: ownerAddress })
+        helper.logGasUse("Change Owner", "setOwner()", "by owner", tx);
+        assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
+        assert.equal(tx.logs[0].args.old, ownerAddress, "old owner should be set in event");
+        assert.equal(tx.logs[0].args.current, newOwner, "new owner should be set in event");
+        var ownerRes = await instance.owner();
+        assert.equal(ownerRes, newOwner, "owner() should return the new owner");
     }); // should be possible to change owner
 
-    it('should only the current owner change owner', () => {
+    it('should only the current owner change owner', async function () {
         var newOwner = accounts[2];
-        var instance, ownerAddress;
 
-        return lupi.new(web3.toWei(1), 2, 0, 60, 10000)
-        .then( contractInstance => {
-            instance = contractInstance;
-            return instance.owner();
-        }).then( ownerRes => {
-            ownerAddress = ownerRes;
-            return instance.setOwner(newOwner, { from: newOwner })
-        }).then( tx => {
-            helper.logGasUse("Change Owner", "setOwner()", "by non owner", tx);
-            assert.equal(tx.logs.length, 0, "no event should be emmitted");
-            return instance.owner();
-        }).then ( ownerRes => {
-            assert.equal(ownerRes, ownerAddress, "owner() should return the old owner");
-        });
+        var instance = await lupi.new(web3.toWei(1), 2, 0, 60, 10000);
+        var ownerAddress = await instance.owner();
+        var tx = await instance.setOwner(newOwner, { from: newOwner })
+        helper.logGasUse("Change Owner", "setOwner()", "by non owner", tx);
+        assert.equal(tx.logs.length, 0, "no event should be emmitted");
+        var ownerRes = await instance.owner();
+        assert.equal(ownerRes, ownerAddress, "owner() should return the old owner");
     }); // should be possible to change owner
 
-    it('feeAmount should be less than requiredBetAmount', () => {
+    it('feeAmount should be less than requiredBetAmount', async function () {
         return helper.expectThrow( lupi.new(web3.toWei(1), 1, 0, 1, 1000000, { account: accounts[0], gas: 3000000}));
     }); // feeAmount should be less than requiredBetAmount
 

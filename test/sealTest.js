@@ -18,14 +18,12 @@ contract("Lupi seal tests", accounts => {
     var salt1 = "0xdb8780d713083a9addb6494cfc767d6ef4b1358315737e06bbb7fd84cc493d1c";
     var expected = "0x9546122e203e0cd4bf7e6bdc536575542bef986ebebbd84e7cdc794d5ac556e1";
 
-    it('should be possible to seal a bet for myself', () => {
-        return instance.sealBet(2, salt1, { from: accounts[1] })
-        .then( res => {
-            assert.equal(res, expected, "sealBet(number, salt) result should be as expected");
-        });
+    it('should be possible to seal a bet for myself', async function () {
+        var res = await instance.sealBet(2, salt1, { from: accounts[1] });
+        assert.equal(res, expected, "sealBet(number, salt) result should be as expected");
     }); // should be possible to seal a bet for myself
 
-    it('should be possible to seal a bet for someone else when passing account address as accounts[1]', () => {
+    it('should be possible to seal a bet for someone else when passing account address as accounts[1]', async function () {
         return Promise.all( [
             instance.sealBetForAddress(accounts[1].toString(), 2, salt1)
             .then( res => {
@@ -47,11 +45,8 @@ contract("Lupi seal tests", accounts => {
         ]); // Promise.all()
     });// should be possible to seal a bet for someone else
 
-    it("shouldn't be possible to seal a bet 0 number", done => {
-        helper.expectThrow(instance.sealBet(0, salt1, { from: accounts[1] }))
-        .then( res => {
-            done();
-        });
+    it("shouldn't be possible to seal a bet 0 number", async function () {
+        await helper.expectThrow(instance.sealBet(0, salt1, { from: accounts[1] }));
     }); // shouldn't be possible to seal a bet 0 number
 
 });
