@@ -46,7 +46,12 @@ contract("Lupi seal tests", accounts => {
     });// should be possible to seal a bet for someone else
 
     it("shouldn't be possible to seal a bet 0 number", async function () {
-        await helper.expectThrow(instance.sealBet(0, salt1, { from: accounts[1] }));
+        if (web3.version.network == 1976) {  // on privatechain , network set by .runprivatechain.sh (geth ...  --networkid 1976 ..)
+            res = await instance.sealBet(0, salt1, { from: accounts[1] });
+            assert.equal(res, "0x", "sealBet with number 0 should return 0x on privatechain");
+        } else {
+            await helper.expectThrow(instance.sealBet(0, salt1, { from: accounts[1] }));
+        }
     }); // shouldn't be possible to seal a bet 0 number
 
 });

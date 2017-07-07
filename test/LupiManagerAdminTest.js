@@ -40,15 +40,16 @@ contract("LupiManager Admin tests", accounts => {
 
         var instance = await lupiManager.new();
         var lupiManagerOwnerAddress = await instance.owner();
+        var gameCreatedTime = moment().utc().unix();
         var tx = await instance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength,
-                 revealPeriodLength, feePt, { gas: 1200000});
+                 revealPeriodLength, feePt, { gas: lupiHelper.GAS.createGame.gas });
         testHelper.logGasUse("LupiManager", "LupiManager.createGame()", "", tx);
         assert.equal(tx.logs[1].event, "e_GameCreated", "e_GameCreated event should be emmitted");
-        var gameAddress = tx.logs[1].args.gameAddress;
+        var gameAddress = tx.logs[2].args.gameAddress;
         var gameIdx = tx.logs[2].args.gameIdx;
         assert.equal(tx.logs[2].event, "e_GameAdded", "e_GameAdded event should be emmitted");
         assert.equal(tx.logs[2].args.gameIdx, 0, "gameIdx should be set in event");
-        assert.equal(tx.logs[1].args.gameAddress, gameAddress, "new game address should be set in event");
+        assert( web3.isAddress(gameAddress), "new game address should be set in event");
         assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
         assert.equal(tx.logs[0].args.current, lupiManagerOwnerAddress, "new owner should be set in event");
         var newGameAddress = await instance.games(gameIdx);
@@ -62,8 +63,8 @@ contract("LupiManager Admin tests", accounts => {
         assert.equal(roundInfo.state, 0, "new game state should be betting");
         assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "new game requiredBetAmount should be set");
         assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "new game ticketCountLimit should be set");
-        assert(roundInfo.bettingPeriodEnds >= moment().utc().unix() + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
-        assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
+        assert(roundInfo.bettingPeriodEnds >= gameCreatedTime + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
+        assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 1, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
         assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "new game revealPeriodLength should be set");
         assert.equal(roundInfo.feePt, feePt, "new game feePt should be set");
     }); // should be possible to create a new game

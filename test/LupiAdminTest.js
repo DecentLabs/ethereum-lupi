@@ -12,14 +12,14 @@ contract("Lupi admin tests", accounts => {
         var bettingPeriodLength = 20;
         var feePt = 10000;
         var revealPeriodLength = 14400;
-
+        var gameCreatedTime = moment().utc().unix();
         var instance = await lupi.new(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt);
         var ownerAddress = await instance.owner();
         var roundInfo = new lupiHelper.RoundInfo( await instance.getRoundInfo() );
         assert.equal(roundInfo.state, 0, "state should be 'Betting' (0)");
         assert.equal(roundInfo.requiredBetAmount.toString(), requiredBetAmount,toString(), "requiredBetAmount should be set");
         assert.equal(roundInfo.feePt, feePt, "feePt should be set");
-        assert(roundInfo.bettingPeriodEnds >= moment().utc().unix() + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
+        assert(roundInfo.bettingPeriodEnds >= gameCreatedTime + bettingPeriodLength - 1, "bettingPeriodEnds end should be at least bettingPeriodLength + now - 1sec");
         assert(roundInfo.bettingPeriodEnds <= moment().utc().unix() + bettingPeriodLength + 10, "bettingPeriodEnds end should be at most bettingPeriodLength + now + 1sec");
         assert.equal(roundInfo.ticketCountLimit, ticketCountLimit, "ticketCountLimit should be set");
         assert.equal(roundInfo.revealPeriodLength, revealPeriodLength, "revealPeriodLength should be set");

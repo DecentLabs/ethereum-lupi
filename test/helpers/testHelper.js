@@ -18,8 +18,7 @@ function logGasUse(roundName, tran, args, tx) {
 function waitForTimeStamp(waitForTimeStamp) {
 
     var currentTimeStamp = moment().utc().unix();
-    var wait =  waitForTimeStamp - currentTimeStamp;
-    wait = wait < 0 ? 0 : wait;
+    var wait = waitForTimeStamp <= currentTimeStamp ? 1 : waitForTimeStamp - currentTimeStamp; // 0 wait caused tests to be flaky, why?
     console.log("\x1b[2m        ... waiting ", wait, "seconds then sending a dummy tx for blockTimeStamp to reach time required by test ...\x1b[0m");
 
     return new Promise( resolve => {
@@ -28,7 +27,6 @@ function waitForTimeStamp(waitForTimeStamp) {
                 if( blockTimeStamp < waitForTimeStamp ) {
                     web3.eth.sendTransaction({from: web3.eth.accounts[0]}, function(error, res) {
                         if (error) {
-                            console.log("waitForTimeStamp() web3.eth.sendTransaction() error")
                             reject(error);
                         } else {
                             resolve();
@@ -43,8 +41,12 @@ function waitForTimeStamp(waitForTimeStamp) {
 } // waitForTimeStamp()
 
 function expectThrow (promise) {
+    const onPrivateChain = web3.version.network == 1976 ? true : false; // set by .runprivatechain.sh (geth ...  --networkid 1976 ..)
     return promise.then( res => {
-        assert.fail('Expected throw not received');
+        if(!onPrivateChain){
+            console.log("Received tx instead of throw: \r\n", JSON.stringify(res, null, 4));
+            assert.fail('Expected throw not received');
+        } // on privatechain we check gasUsed after tx sent
         return;
     }).catch( error => {
         // TODO: Check jump destination to destinguish between a throw
@@ -56,11 +58,14 @@ function expectThrow (promise) {
         //       testrpc log actually show an 'invalid jump' event.)
         const outOfGas = error.message.search('out of gas') >= 0;
         const outOfGasPrivateChain = error.message.search("The contract code couldn't be stored, please check your gas amount.") >= 0;
+
+        const allGasUsed = error.message.search("All gas used") >=0; // we throw this manually after tx b/c on privatechain it doesn't throw :/
         const invalidOpcode1 = error.message.search('VM Exception while processing transaction: invalid opcode') >=0;
         const invalidOpcode2 = error.message.search("VM Exception while executing eth_call: invalid opcode") >= 0;
-        const onPrivateChain = web3.version.network == 1976 ? true : false; // set by .runprivatechain.sh (geth ...  --networkid 1976 ..)
-        assert( invalidOpcode1 || invalidOpcode2 || invalidJump || outOfGas || (outOfGasPrivateChain && onPrivateChain),
-            "Expected solidity throw, got '" + error + "' instead", );
+
+        assert( invalidOpcode1 || invalidOpcode2 || invalidJump || outOfGas ||
+            (onPrivateChain && (outOfGasPrivateChain || allGasUsed) ),
+            "Expected solidity throw, got '" + error + "' instead. onPrivateChain: " + onPrivateChain );
         return ;
     });
 }; // expectThrow

@@ -1,5 +1,6 @@
 var lupi = artifacts.require("./Lupi.sol");
 var helper = new require('./helpers/testHelper.js');
+var lupiHelper = new require('../app/javascripts/LupiHelper.js');
 var bettingHelper = new require('./helpers/bettingHelper.js');
 var moment = require('moment');
 
@@ -7,9 +8,10 @@ contract("Lupi betting edge case tests", accounts => {
     //*************************************************************
     // placeBet
     // ************************************************************
+
     it("shouldn't be able to placeBet with invalid betAmount", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: placeBet 1",
-            ticketCountLimit: 3, bettingPeriodLength: 2, revealPeriodLength: 600,
+            ticketCountLimit: 3, bettingPeriodLength: 600, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
             feePt: 10000, betsToPlace: [2], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 0 });
         await bettingHelper._createGame(testParams);
@@ -20,24 +22,21 @@ contract("Lupi betting edge case tests", accounts => {
 
     it("shouldn't be possible to placeBet after ticketCountLimit reached", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: placeBet 2",
-            ticketCountLimit: 2, bettingPeriodLength: 600, revealPeriodLength: 600,
+            ticketCountLimit: 1, bettingPeriodLength: 600, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 0 });
+            feePt: 10000, betsToPlace: [2], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 0 });
         await bettingHelper._createGame(testParams);
         await bettingHelper._placeBets(testParams);
-        testParams.betsToPlace.splice(1,1); // resend only one bet
         await helper.expectThrow( bettingHelper._placeBets(testParams));
     });
 
     it("shouldn't be possible to placeBet after bettingPeriodEnds", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: placeBet 3",
-            ticketCountLimit: 3, bettingPeriodLength: 2, revealPeriodLength: 600,
+            ticketCountLimit: 3, bettingPeriodLength: 1, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 0 });
+            feePt: 10000, betsToPlace: [2], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 0 });
         await bettingHelper._createGame(testParams);
-        await bettingHelper._placeBets(testParams);
-        testParams.betsToPlace.splice(1,1); // resend only one bet
-        var bettingPeriodEnds = moment().utc().unix() + testParams.bettingPeriodLength;
+        var bettingPeriodEnds = ( await testParams.gameInstance.bettingPeriodEnds() ).toNumber();
         await helper.waitForTimeStamp(bettingPeriodEnds);
         await helper.expectThrow( bettingHelper._placeBets(testParams));
     }); // shouldn't be possible to placeBet after bettingPeriodEnds
@@ -49,10 +48,9 @@ contract("Lupi betting edge case tests", accounts => {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: startReveal 1",
             ticketCountLimit: 0, bettingPeriodLength: 2, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 });
+            feePt: 10000, betsToPlace: [2], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 1 });
         await bettingHelper._createGame(testParams);
-        await bettingHelper._placeBets(testParams);
-        var bettingPeriodEnds = moment().utc().unix() + testParams.bettingPeriodLength + 0.5;
+        var bettingPeriodEnds = ( await testParams.gameInstance.bettingPeriodEnds() ).toNumber();
         await helper.waitForTimeStamp(bettingPeriodEnds);
         await bettingHelper._startRevealing(testParams);
     }); // should be possible to startRevealing after bettingPeriodEnds when there is no ticketCountLimit
@@ -64,13 +62,12 @@ contract("Lupi betting edge case tests", accounts => {
     //*************************************************************
     it("should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: startReveal 2",
-            ticketCountLimit: 3, bettingPeriodLength: 2, revealPeriodLength: 600,
+            ticketCountLimit: 3, bettingPeriodLength: 1, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
             feePt: 10000, betsToPlace: [2,4], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 2 });
-        await bettingHelper._createGame(testParams)
-        await bettingHelper._placeBets(testParams);
-        var bettingPeriodEnds = moment().utc().unix() + testParams.bettingPeriodLength;
-        await helper.waitForTimeStamp(bettingPeriodEnds + 0.5);
+        await bettingHelper._createGame(testParams);
+        var bettingPeriodEnds = ( await testParams.gameInstance.bettingPeriodEnds() ).toNumber();
+        await helper.waitForTimeStamp(bettingPeriodEnds);
         await bettingHelper._startRevealing(testParams);
     }); // should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet
 
@@ -81,7 +78,7 @@ contract("Lupi betting edge case tests", accounts => {
             feePt: 10000, betsToPlace: [2,4], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 1 });
         await bettingHelper._createGame(testParams)
         await bettingHelper._placeBets(testParams);
-        var revealPeriodEnds = moment().utc().unix() + testParams.revealPeriodLength;
+        var revealPeriodEnds = ( await testParams.gameInstance.revealPeriodEnds() ).toNumber();
         await helper.waitForTimeStamp(revealPeriodEnds);
         await bettingHelper._revealBets(testParams);
     }); // should be possible to startRevealing after bettingPeriodEnds when the ticketCountLimit is not reached yet
@@ -108,20 +105,26 @@ contract("Lupi betting edge case tests", accounts => {
     //*************************************************************
     it("shouldn't be able to reveal a bet wih 0 number", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: reveal 1",
-            ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 1,
-            requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [1], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 1 });
+            ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 600,
+            requiredBetAmount: web3.toWei(1), feePt: 10000,
+            betsToPlace: [ { number: 0, idx: 1, playerAddress: "0x94011c67bc1e6448ed4b8682047358ca6cd09470",
+                encryptedBet: "0xab2853f512def13595005642408a0aeb7ac8bb76e95d4cb325d73e1faa8f58de"}],
+            expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 1 });
         await bettingHelper._createGame(testParams)
-        await bettingHelper._placeBets(testParams); // we pass 1 first to let sealBet pass
-        testParams.betsToPlace[0].number = 0;
-        testParams.betsToPlace[0].sealedBet = "0xab2853f512def13595005642408a0aeb7ac8bb76e95d4cb325d73e1faa8f58de";
-        testParams.betsToPlace[0].playerAddress = "0x94011c67bc1e6448ed4b8682047358ca6cd09470";
+
+        var gasEstimate = lupiHelper.GAS.placeBetLast.gas;
+        var bet = testParams.betsToPlace[0];
+        var tx = await testParams.gameInstance.placeBet(bet.encryptedBet,
+                    { from: bet.playerAddress, value: testParams.requiredBetAmount, gas: gasEstimate });
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") }
+        bet.ticketId = tx.logs[0].args.ticketId.toNumber();
+        helper.logGasUse(testParams.testCaseName, "placeBet()", "ticketId: " + bet.ticketId + " | idx: " + bet.idx + " | number: " + bet.number ,  tx);
         await helper.expectThrow( bettingHelper._revealBets(testParams));
     }); // shouldn't be able to reveal a bet wih 0 number
 
     it("shouldn't be able to reveal a bet wih invalid salt",  async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: reveal 2",
-            ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 1,
+            ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
             feePt: 10000, betsToPlace: [1], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 1 });
         await bettingHelper._createGame(testParams)
@@ -158,16 +161,16 @@ contract("Lupi betting edge case tests", accounts => {
     //*************************************************************
     it('should be possible to declareWinner without any bets revealed', async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: declareWinner 1",
-            ticketCountLimit: 3, bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 0 });
+            ticketCountLimit: 2, bettingPeriodLength: 0, revealPeriodLength: 0, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2,4], expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 0 });
         await bettingHelper.runBettingTest( testParams );
     }); // should be possible to declareWinner without anybets revealed
 
     it("should be possible to declareWinner before revealPeriodEnds when all tickets revealed", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: declareWinner 2",
-            ticketCountLimit: 3, bettingPeriodLength: 6000, revealPeriodLength: 600,
+            ticketCountLimit: 2, bettingPeriodLength: 6000, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [4,3,2], expWinningIdx: 3, expWinningNumber: 2, toRevealCt: 3 });
+            feePt: 10000, betsToPlace: [4,3], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 2 });
         await bettingHelper._createGame(testParams)
         await bettingHelper._placeBets(testParams);
         await bettingHelper._revealBets(testParams);
@@ -176,22 +179,22 @@ contract("Lupi betting edge case tests", accounts => {
 
     it("should be possible to declareWinner after revealPeriodEnds when NOT all tickets revealed", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: declareWinner 3",
-            ticketCountLimit: 4, bettingPeriodLength: 6000, revealPeriodLength: 2,
+            ticketCountLimit: 2, bettingPeriodLength: 6000, revealPeriodLength: 2,
             requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [4,3,2,1], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 2 });
+            feePt: 10000, betsToPlace: [4,3], expWinningIdx: 1, expWinningNumber: 4, toRevealCt: 1 });
         await bettingHelper._createGame(testParams)
         await bettingHelper._placeBets(testParams);
         await bettingHelper._revealBets(testParams);
-        var revealPeriodEnds = moment().utc().unix() + testParams.revealPeriodLength;
+        var revealPeriodEnds = ( await testParams.gameInstance.revealPeriodEnds() ).toNumber();
         await helper.waitForTimeStamp(revealPeriodEnds);
         await bettingHelper._declareWinner(testParams);
     }); // should be possible to declareWinner after revealPeriodEnds when NOT all tickets revealed
 
     it("shouldn't be possible to declareWinner before revaelPeriodEnds when not all tickets revealed", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: declareWinner 4",
-            ticketCountLimit: 4, bettingPeriodLength: 6000, revealPeriodLength: 600,
+            ticketCountLimit: 2, bettingPeriodLength: 6000, revealPeriodLength: 600,
             requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [4,3,2,1], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 2 });
+            feePt: 10000, betsToPlace: [4,3], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 1 });
         await bettingHelper._createGame(testParams)
         await bettingHelper._placeBets(testParams);
         await bettingHelper._revealBets(testParams);
@@ -203,41 +206,41 @@ contract("Lupi betting edge case tests", accounts => {
     //*************************************************************
     it("shouldn't be possible to refund a bet twice", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund twice",
-            ticketCountLimit: 3, bettingPeriodLength: 0, revealPeriodLength: 600, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 });
+            ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 600, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 1 });
         var gameInstance = await bettingHelper.runBettingTest( testParams )
         await helper.expectThrow( gameInstance.refund(1));
     }); // shouldn't be possible to refund a bet twice
 
     it("shouldn't be possible to pay a winner twice", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: paywinner twice",
-            ticketCountLimit: 3, bettingPeriodLength: 0, revealPeriodLength: 600, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [4,3,5], expWinningIdx: 2, expWinningNumber: 3, toRevealCt: 3 });
+            ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 600, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [4], expWinningIdx: 1, expWinningNumber: 4, toRevealCt: 1 });
         var gameInstance = await bettingHelper.runBettingTest( testParams)
         await helper.expectThrow( gameInstance.payWinner());
     }); // shouldn't be possible to pay a winner twice
 
     it("shouldn't be able to refund with invalid ticketId request", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund invalid ticket",
-        ticketCountLimit: 3, bettingPeriodLength: 0, revealPeriodLength: 600, requiredBetAmount: web3.toWei(1),
-            feePt: 10000, betsToPlace: [2,4,5], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 3 });
+        ticketCountLimit: 1, bettingPeriodLength: 0, revealPeriodLength: 600, requiredBetAmount: web3.toWei(1),
+            feePt: 10000, betsToPlace: [2], expWinningIdx: 1, expWinningNumber: 2, toRevealCt: 1 });
         var gameInstance = await bettingHelper.runBettingTest( testParams)
-        await helper.expectThrow( gameInstance.refund(4));
+        await helper.expectThrow( gameInstance.refund(1));
     }); // shouldn't be able to refund with invalid ticketId request
 
     it("shouldn't be able to payWinner when there is no winner", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: payWinner nowinner",
-            ticketCountLimit: 4, betsToPlace: [2,4,4,2], toRevealCt: 4,
+            ticketCountLimit: 2, betsToPlace: [2,2], toRevealCt: 2,
             expWinningIdx: 0, expWinningNumber: 0,
             bettingPeriodLength: 0, revealPeriodLength: 600, feePt: 10000, requiredBetAmount: web3.toWei(1)});
-        var gameInstance = await bettingHelper.runBettingTest( testParams)
+        var gameInstance = await bettingHelper.runBettingTest( testParams);
         await helper.expectThrow( gameInstance.payWinner());
     }); // shouldn't be able to payWinner when there is no winner
 
     it("shouldn't be able to refund when there is a winner", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refund winner",
-            ticketCountLimit: 4, betsToPlace: [2,4,2,5], toRevealCt: 4,
-            expWinningIdx: 2, expWinningNumber: 4,
+            ticketCountLimit: 2, betsToPlace: [2,4], toRevealCt: 2,
+            expWinningIdx: 1, expWinningNumber: 2,
             bettingPeriodLength: 0, revealPeriodLength: 600, feePt: 10000, requiredBetAmount: web3.toWei(1)});
         var gameInstance = await bettingHelper.runBettingTest( testParams)
         await helper.expectThrow( gameInstance.payWinner());
@@ -245,11 +248,12 @@ contract("Lupi betting edge case tests", accounts => {
 
     it("shouldn't be possible to payWinner or refund when round not closed", async function () {
         var testParams = new bettingHelper.TestParams( { accounts: accounts, testCaseName: "edge: refundpay roundopen",
-            ticketCountLimit: 3, betsToPlace: [2,3], toRevealCt: 1,
+            ticketCountLimit: 1,
+            betsToPlace: [ {number: 2, ticketId: 1, idx: 0, playerAddress: accounts[1] } ], // manually filling up for calling _payWinnerOrRefund without _placeBet first
+            toRevealCt: 1,
             expWinningIdx: 0, expWinningNumber: 0,
-            bettingPeriodLength: 2, revealPeriodLength: 1, feePt: 10000, requiredBetAmount: web3.toWei(1)});
-        await bettingHelper._createGame(testParams)
-        await bettingHelper._placeBets(testParams);
+            bettingPeriodLength: 0, revealPeriodLength: 1, feePt: 10000, requiredBetAmount: web3.toWei(1)});
+        await bettingHelper._createGame(testParams);
 
         //****** while betting *****
         testParams.expWinningNumber = 0; // for refund
@@ -258,10 +262,8 @@ contract("Lupi betting edge case tests", accounts => {
         await helper.expectThrow( bettingHelper._payWinnerOrRefund(testParams));
 
         //****** while revealing  *****
-        var bettingPeriodEnds = moment().utc().unix() + testParams.bettingPeriodLength;
-        await helper.waitForTimeStamp(bettingPeriodEnds);
-        var revealPeriodEnds = moment().utc().unix() + testParams.revealPeriodLength;
-        await helper.waitForTimeStamp(revealPeriodEnds);
+        testParams.betsToPlace = [2];
+        await bettingHelper._placeBets(testParams);
         await bettingHelper._revealBets(testParams);
         testParams.expWinningNumber = 0; // for refund
         await helper.expectThrow( bettingHelper._payWinnerOrRefund(testParams));

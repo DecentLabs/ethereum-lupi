@@ -111,7 +111,7 @@ contract Lupi is owned {
     event e_RevealStarted(uint revealPeriodEnds);
     function startRevealing() {
         require(state == State.Betting );
-        require(ticketCountLimit == tickets.length -1 || bettingPeriodEnds < now);
+        require(ticketCountLimit == tickets.length -1 || bettingPeriodEnds <= now);
         state = State.Revealing;
         revealPeriodEnds = now + revealPeriodLength;
         e_RevealStarted(revealPeriodEnds);
