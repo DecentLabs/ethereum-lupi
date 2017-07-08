@@ -717,8 +717,8 @@ window.App = {
             var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
             var bettingPeriodLength = parseInt(document.getElementById("bettingPeriodLengthInput").value) * 60;
             var feePt = document.getElementById("feePtInput").value * 10000;
-            var gasEstimate = LupiManagerHelper.GAS.createGame.gas;
-            var gasPrice = Math.round(LupiManagerHelper.GAS.createGame.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = lupiManagerHelper.GAS.createGame.gas;
+            var gasPrice = Math.round(lupiManagerHelper.GAS.createGame.price * await LupiHelper.getDefaultGasPrice());
 
             var tx = await lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt,
                      {from: account, gas: gasEstimate, gasPrice: gasPrice})
@@ -755,7 +755,7 @@ window.App = {
             try {
                 var gasEstimate = lupiManagerHelper.GAS.scheduleStartRevealing.gas;
 
-                var gasPrice = Math.round(LupiMangerHelper.GAS.scheduleStartRevealing.price * await LupiHelper.getDefaultGasPrice());
+                var gasPrice = Math.round(lupiManagerHelper.GAS.scheduleStartRevealing.price * await LupiHelper.getDefaultGasPrice());
                 var tx = await lupiManagerInstance.scheduleStartRevealing( gameAddress,
                                 {from: account, gas: gasEstimate, gasPrice: gasPrice})
                 var queryId = tx.logs[0].args.queryId;
