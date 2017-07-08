@@ -1,8 +1,15 @@
 var lupiManager = artifacts.require("./LupiManager.sol");
+var lupiManagerHelper = new require("../app/javascripts/LupiManagerHelper.js");
 
 module.exports = function(deployer, network) {
-
-    deployer.deploy(lupiManager)
+    deployer.deploy(lupiManager,
+        lupiManagerHelper.GAS.oraclizeGasPrice,
+        lupiManagerHelper.GAS.startRevealingCallBack.gas,
+        lupiManagerHelper.GAS.revealPerTicketCallback.gas,
+        lupiManagerHelper.GAS.declareWinnerCallback.gasBase,
+        lupiManagerHelper.GAS.declareWinnerCallback.gasPerGuess,
+        lupiManagerHelper.GAS.refundPerTicketCallback.gas,
+        lupiManagerHelper.GAS.payWinnerCallback.gas)
     .then( res => {
         console.log("    Deploying lupiManager - If you get VM Exception then check if ethereum-bridge is deployed with npm run bridge:deploy (This VM exception needs to be fixed..)");
         return lupiManager.deployed();

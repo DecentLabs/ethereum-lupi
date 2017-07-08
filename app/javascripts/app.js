@@ -16,6 +16,7 @@ var countdown = require('countdown');
 var FileSaver = require('file-saver');
 var Parse = require('parse');
 var LupiHelper = require('../javascripts/LupiHelper.js');
+var lupiManagerHelper = require('../javascripts/LupiManagerHelper.js');
 
 var $ = window.$ = require('jquery');
 require('bootstrap');
@@ -716,8 +717,8 @@ window.App = {
             var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
             var bettingPeriodLength = parseInt(document.getElementById("bettingPeriodLengthInput").value) * 60;
             var feePt = document.getElementById("feePtInput").value * 10000;
-            var gasEstimate = LupiHelper.GAS.createGame.gas;
-            var gasPrice = Math.round(LupiHelper.GAS.createGame.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = LupiManagerHelper.GAS.createGame.gas;
+            var gasPrice = Math.round(LupiManagerHelper.GAS.createGame.price * await LupiHelper.getDefaultGasPrice());
 
             var tx = await lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt,
                      {from: account, gas: gasEstimate, gasPrice: gasPrice})
@@ -752,10 +753,10 @@ window.App = {
         return new Promise( async function (resolve, reject) {
             var self = this;
             try {
-                var gasEstimate = LupiHelper.GAS.scheduleStartRevealing.gas;
+                var gasEstimate = lupiManagerHelper.GAS.scheduleStartRevealing.gas;
 
-                var gasPrice = Math.round(LupiHelper.GAS.scheduleStartRevealing.price * await LupiHelper.getDefaultGasPrice());
-                var tx = await lupiManagerInstance.scheduleStartRevealing( gameAddress, LupiHelper.GAS.startRevealingCallBack.gas,
+                var gasPrice = Math.round(LupiMangerHelper.GAS.scheduleStartRevealing.price * await LupiHelper.getDefaultGasPrice());
+                var tx = await lupiManagerInstance.scheduleStartRevealing( gameAddress,
                                 {from: account, gas: gasEstimate, gasPrice: gasPrice})
                 var queryId = tx.logs[0].args.queryId;
                 if (typeof queryId == "undefined") {

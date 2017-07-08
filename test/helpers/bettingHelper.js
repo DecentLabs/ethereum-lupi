@@ -5,6 +5,7 @@ var lupiManager = artifacts.require("./LupiManager.sol");
 var BigNumber = require('bignumber.js');
 var testHelper = new require('./testHelper.js');
 var lupiHelper = new require('../../app/javascripts/LupiHelper.js');
+var lupiManagerHelper = new require('../../app/javascripts/LupiManagerHelper.js');
 var moment = require('moment');
 
 var testParams;
@@ -79,7 +80,7 @@ async function _createGame( _testParams) {
     assert(lupiManagerOwnerAddress, _testParams.lupiManagerOwnerAddress , "lupiManagerOwnerAddress should be set");
     _testParams.bettingPeriodEnds = _testParams.bettingPeriodLength == 0 ? 0 :
                             _testParams.bettingPeriodLength + moment().utc().unix();
-    var gasEstimate = lupiHelper.GAS.createGame.gas;
+    var gasEstimate = lupiManagerHelper.GAS.createGame.gas;
     var tx = await _testParams.lupiManagerInstance.createGame(_testParams.requiredBetAmount, _testParams.ticketCountLimit, _testParams.bettingPeriodLength,
              _testParams.revealPeriodLength, _testParams.feePt, { from: _testParams.lupiManagerOwnerAddress, gas: gasEstimate});
     if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain

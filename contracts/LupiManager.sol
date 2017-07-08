@@ -27,15 +27,43 @@ contract LupiManager is owned, usingOraclize {
     string constant public ERR_CB_INVALID_RESULTRCV = "Invalid resultRcv";
     string constant public WARN_CB_REVEAL_ALREADY_STARTED = "Revealing already started. Skipping";
 
+    uint public oraclizeGasPrice;
+    uint public gasStartRevealingCallBack;
+    uint public gasRevealPerTicketCallBack;
+    uint public gasDeclareWinnerBaseCallBack;
+    uint public gasDeclareWinnerPerTicketCallBack;
+    uint public gasRefundPerTicketCallBack;
+    uint public gasPayWinnerCallBack;
+
     mapping(bytes32 => address) m_queries;
 
-    function LupiManager() {
+    function LupiManager(uint _oraclizeGasPrice, uint _gasStartRevealing, uint _gasRevealPerTicket,
+        uint _gasDeclareWinnerBase, uint _gasDeclareWinnerPerTicket,
+        uint _gasRefundPerTicket, uint _gasPayWinner) {
+
+        setGasParams(_oraclizeGasPrice, _gasStartRevealing, _gasRevealPerTicket,
+                _gasDeclareWinnerBase, _gasDeclareWinnerPerTicket,
+                _gasRefundPerTicket,  _gasPayWinner);
         oraclize_setProof(proofType_NONE);
     }
 
     function () payable { // required to be able to top in order to pay for Oraclize callbacks
     }
     // TODO: fx to send money back to owner, figure out topup mechanics.
+
+    function setGasParams(uint _oraclizeGasPrice, uint _gasStartRevealing, uint _gasRevealPerTicket,
+            uint _gasDeclareWinnerBase, uint _gasDeclareWinnerPerTicket,
+            uint _gasRefundPerTicket, uint _gasPayWinner) onlyOwner {
+        oraclizeGasPrice = _oraclizeGasPrice;
+        oraclize_setCustomGasPrice(_oraclizeGasPrice);
+        // TODO: if oraclizeGasPrice set (if not then read default?) then setCustomGasPrice(oraclizeGasPrice);
+        gasStartRevealingCallBack = _gasStartRevealing;
+        gasRevealPerTicketCallBack = _gasRevealPerTicket;
+        gasDeclareWinnerBaseCallBack = _gasDeclareWinnerBase;
+        gasDeclareWinnerPerTicketCallBack = _gasDeclareWinnerPerTicket;
+        gasRefundPerTicketCallBack = _gasRefundPerTicket;
+        gasPayWinnerCallBack = _gasPayWinner;
+    }
 
     function getGamesCount() public constant returns (uint ct) {
         return games.length;
@@ -65,8 +93,8 @@ contract LupiManager is owned, usingOraclize {
 
     event e_OraclizeScheduleError(string error);
     event e_startRevealingScheduled(bytes32 queryId);
-    function scheduleStartRevealing(address gameAddress, uint gasEst) payable returns (bytes32 queryId) {
-        if (oraclize_getPrice("identity") > this.balance) {
+    function scheduleStartRevealing(address gameAddress) payable returns (bytes32 queryId) {
+        if (oraclize_getPrice("identity", gasStartRevealingCallBack ) > this.balance) {
             e_OraclizeScheduleError(ERR_SCH_NOT_ENOUGH_BALANCE);
             return 0;
         }
@@ -83,7 +111,7 @@ contract LupiManager is owned, usingOraclize {
         }
 
         uint cbTimeStamp = gameInstance.bettingPeriodEnds() + CB_EXTRA_SECS;
-        queryId = oraclize_query(cbTimeStamp, "identity", START_REVEALING, gasEst);
+        queryId = oraclize_query(cbTimeStamp, "identity", START_REVEALING, gasStartRevealingCallBack);
         m_queries[queryId] = gameAddress;
         e_startRevealingScheduled(queryId);
         return queryId;
@@ -93,10 +121,6 @@ contract LupiManager is owned, usingOraclize {
         // encryptedTicket: ticket encrypted with Oraclize's public key
         // revealTime:
         return 0;
-    }
-
-    function testsha(string par) constant returns (bytes32 ret) {
-        return sha3(par);
     }
 
     event e_OraclizeCallBackLog(bytes32 queryId, string resultRcv, string msg);

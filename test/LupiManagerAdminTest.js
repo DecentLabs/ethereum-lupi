@@ -2,15 +2,60 @@ var lupiManager = artifacts.require("./LupiManager.sol");
 var lupi = artifacts.require("./Lupi.sol");
 var testHelper = new require('./helpers/testHelper.js');
 var lupiHelper = new require('../app/javascripts/LupiHelper.js');
+var lupiManagerHelper = new require('../app/javascripts/LupiManagerHelper.js');
+var lupiManagerTestHelper = new require('./helpers/lupiManagerTestHelper.js');
 var moment = require('moment');
 var BigNumber = require('bignumber.js');
 
 contract("LupiManager Admin tests", accounts => {
+    it('LupiManager contract should be setup with initial parameters', async function () {
+        var instance = await lupiManagerTestHelper.newLupiManager();
+        assert.equal( await instance.oraclizeGasPrice(), lupiManagerHelper.GAS.oraclizeGasPrice, "oraclizeGasPrice should be set" );
+        assert.equal( await instance.gasStartRevealingCallBack(), lupiManagerHelper.GAS.startRevealingCallBack.gas, "gasStartRevealing gasStartRevealing should be set" );
+        assert.equal( await instance.gasRevealPerTicketCallBack(),lupiManagerHelper.GAS.revealPerTicketCallback.gas, "gasRevealPerTicket should be set" );
+        assert.equal( await instance.gasDeclareWinnerBaseCallBack(), lupiManagerHelper.GAS.declareWinnerCallback.gasBase, "gasDeclareWinnerBase should be set" );
+        assert.equal( await instance.gasDeclareWinnerPerTicketCallBack(), lupiManagerHelper.GAS.declareWinnerCallback.gasPerGuess, "gasDeclareWinnerPerTicket should be set" );
+        assert.equal( await instance.gasRefundPerTicketCallBack(), lupiManagerHelper.GAS.refundPerTicketCallback.gas, "gasRefundPerTicket should be set" );
+        assert.equal( await instance.gasPayWinnerCallBack(), lupiManagerHelper.GAS.payWinnerCallback.gas, "gasPayWinner should be set" );
+    }); // LupiManager contract should be setup with initial parameters
+
+    it('should be possible to change LupiManager contract parameters', async function () {
+        var instance = await lupiManagerTestHelper.newLupiManager();
+        var gasEstimate = lupiManagerHelper.GAS.setGasParams.gas;
+        var tx = await instance.setGasParams( 10, 11, 12, 13, 14, 15, 16, {gas: gasEstimate});
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.setGasParams()", "by owner", tx);
+        assert.equal( await instance.oraclizeGasPrice(), 10, "oraclizeGasPrice should be set" );
+        assert.equal( await instance.gasStartRevealingCallBack(), 11, "gasStartRevealing gasStartRevealing should be set" );
+        assert.equal( await instance.gasRevealPerTicketCallBack(),12, "gasRevealPerTicket should be set" );
+        assert.equal( await instance.gasDeclareWinnerBaseCallBack(), 13, "gasDeclareWinnerBase should be set" );
+        assert.equal( await instance.gasDeclareWinnerPerTicketCallBack(), 14, "gasDeclareWinnerPerTicket should be set" );
+        assert.equal( await instance.gasRefundPerTicketCallBack(), 15, "gasRefundPerTicket should be set" );
+        assert.equal( await instance.gasPayWinnerCallBack(), 16, "gasPayWinner should be set" );
+    }); // LupiManager contract should be setup with initial parameters);
+
+    it('only the owner should be able to change LupiManager contract parameters', async function() {
+        var instance = await lupiManagerTestHelper.newLupiManager();
+        var gasEstimate = lupiManagerHelper.GAS.setGasParams.gas;
+        var tx = await instance.setGasParams( 10, 11, 12, 13, 14, 15, 16, {from: accounts[1], gas: gasEstimate});
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.setGasParams()", "by non owner", tx);
+        assert.equal( await instance.oraclizeGasPrice(), lupiManagerHelper.GAS.oraclizeGasPrice, "oraclizeGasPrice should be set" );
+        assert.equal( await instance.gasStartRevealingCallBack(), lupiManagerHelper.GAS.startRevealingCallBack.gas, "gasStartRevealing gasStartRevealing should be set" );
+        assert.equal( await instance.gasRevealPerTicketCallBack(),lupiManagerHelper.GAS.revealPerTicketCallback.gas, "gasRevealPerTicket should be set" );
+        assert.equal( await instance.gasDeclareWinnerBaseCallBack(), lupiManagerHelper.GAS.declareWinnerCallback.gasBase, "gasDeclareWinnerBase should be set" );
+        assert.equal( await instance.gasDeclareWinnerPerTicketCallBack(), lupiManagerHelper.GAS.declareWinnerCallback.gasPerGuess, "gasDeclareWinnerPerTicket should be set" );
+        assert.equal( await instance.gasRefundPerTicketCallBack(), lupiManagerHelper.GAS.refundPerTicketCallback.gas, "gasRefundPerTicket should be set" );
+        assert.equal( await instance.gasPayWinnerCallBack(), lupiManagerHelper.GAS.payWinnerCallback.gas, "gasPayWinner should be set" );
+    }); //only the owner should be able to change LupiManager contract parameters
 
     it('should be possible to add a game', async function () {
         var gameToAdd = "0x2313bdf7f88755aa2c6198af3dd875622a181213";
-        var instance = await lupiManager.new();
-        var tx = await instance.addGame(gameToAdd);
+        var instance = await lupiManagerTestHelper.newLupiManager();
+        var gasEstimate = lupiManagerHelper.GAS.addGame.gas;
+        var tx = await instance.addGame(gameToAdd, { gas: gasEstimate });
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.addGame()", "by owner", tx);
         var gameIdx = tx.logs[0].args.gameIdx;
         assert.equal(tx.logs[0].event, "e_GameAdded", "e_GameAdded event should be emmitted");
         assert.equal(tx.logs[0].args.gameIdx.toNumber(), 0, "gameIdx should be set in event");
@@ -23,9 +68,11 @@ contract("LupiManager Admin tests", accounts => {
 
     it('only owner should be able to add a game', async function () {
         var gameToAdd = "0x2313bdf7f88755aa2c6198af3dd875622a181213";
-        var instance = await lupiManager.new();
-        var tx = await instance.addGame(gameToAdd, { from: accounts[1]});
-        testHelper.logGasUse("LupiManager.addGame()", "addGame()", "", tx);
+        var instance = await lupiManagerTestHelper.newLupiManager();
+        var gasEstimate = lupiManagerHelper.GAS.addGame.gas;
+        var tx = await instance.addGame(gameToAdd, { from: accounts[1], gas: gasEstimate });
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "addGame()", "by non owner", tx);
         assert.equal(tx.logs.length, 0, "no event should be emmitted");
         var gameCt = await instance.getGamesCount();
         assert.equal(gameCt, 0, "game count should be 0");
@@ -38,12 +85,14 @@ contract("LupiManager Admin tests", accounts => {
         var feePt = 10000;
         var revealPeriodLength = 14400;
 
-        var instance = await lupiManager.new();
+        var instance = await lupiManagerTestHelper.newLupiManager();
         var lupiManagerOwnerAddress = await instance.owner();
         var gameCreatedTime = moment().utc().unix();
+        var gasEstimate = lupiManagerHelper.GAS.createGame.gas;
         var tx = await instance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength,
-                 revealPeriodLength, feePt, { gas: lupiHelper.GAS.createGame.gas });
-        testHelper.logGasUse("LupiManager", "LupiManager.createGame()", "", tx);
+                 revealPeriodLength, feePt, { gas: gasEstimate });
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.createGame()", "by owner", tx);
         assert.equal(tx.logs[1].event, "e_GameCreated", "e_GameCreated event should be emmitted");
         var gameAddress = tx.logs[2].args.gameAddress;
         var gameIdx = tx.logs[2].args.gameIdx;
@@ -70,8 +119,11 @@ contract("LupiManager Admin tests", accounts => {
     }); // should be possible to create a new game
 
     it('only owner should be able to create a new game', async function () {
-        var instance = await lupiManager.new();
-        var tx = await instance.createGame(1,1,0,1,1, { from: accounts[1]});
+        var instance = await lupiManagerTestHelper.newLupiManager();
+        var gasEstimate = lupiManagerHelper.GAS.createGame.gas;
+        var tx = await instance.createGame(1,1,0,1,1, { from: accounts[1], gas: gasEstimate});
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.createGame()", "by non owner", tx);
         assert.equal(tx.logs.length, 0, "no event should be emmitted");
         var gameCt = await instance.getGamesCount();
         assert.equal(gameCt, 0, "game count should be 0");
@@ -79,9 +131,12 @@ contract("LupiManager Admin tests", accounts => {
 
     it('should be possible to change owner', async function () {
         var newOwner = accounts[1];
-        var instance = await lupiManager.new();
+        var instance = await lupiManagerTestHelper.newLupiManager();
         var ownerAddress = await instance.owner();
-        var tx = await instance.setOwner(newOwner, { from: ownerAddress });
+        var gasEstimate = lupiManagerHelper.GAS.setOwner.gas;
+        var tx = await instance.setOwner(newOwner, { from: ownerAddress, gas: gasEstimate });
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.setOwner()", "by owner", tx);
         assert.equal(tx.logs[0].event, "NewOwner", "NewOwner event should be emmitted");
         assert.equal(tx.logs[0].args.old, ownerAddress, "old owner should be set in event");
         assert.equal(tx.logs[0].args.current, newOwner, "new owner should be set in event");
@@ -91,9 +146,12 @@ contract("LupiManager Admin tests", accounts => {
 
     it('should only the current owner change owner', async function () {
         var newOwner = accounts[2];
-        var instance = await lupiManager.new();
+        var instance = await lupiManagerTestHelper.newLupiManager();
         var ownerAddress = await instance.owner();
-        var tx = await instance.setOwner(newOwner, { from: newOwner });
+        var gasEstimate = lupiManagerHelper.GAS.setOwner.gas;
+        var tx = await instance.setOwner(newOwner, { from: newOwner, gas: gasEstimate });
+        if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
+        testHelper.logGasUse("LupiManager Admin", "lupiManager.setOwner()", "by non owner", tx);
         assert.equal(tx.logs.length, 0, "no event should be emmitted");
         var ownerRes = await instance.owner();
         assert.equal(ownerRes, ownerAddress, "owner() should return the old owner");
