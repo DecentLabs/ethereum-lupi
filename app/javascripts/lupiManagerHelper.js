@@ -1,6 +1,6 @@
 const GAS = {
     oraclizeGasPrice: 4000000000, // safe medium: 4 gwei currently http://ethgasstation.info/
-    createLupiManager: { gas: 4700000}, // 4513663  4536031 4642887
+    createLupiManager: { gas: 4707806}, // 4513663  4536031 4642887
     setOwner: {gas: 100000}, // ????
     setGasParams: {gas: 100000 }, // ???
     addGame: {gas: 100000 }, // ???

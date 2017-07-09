@@ -9,7 +9,8 @@ module.exports = function(deployer, network) {
         lupiManagerHelper.GAS.declareWinnerCallback.gasBase,
         lupiManagerHelper.GAS.declareWinnerCallback.gasPerGuess,
         lupiManagerHelper.GAS.refundPerTicketCallback.gas,
-        lupiManagerHelper.GAS.payWinnerCallback.gas)
+        lupiManagerHelper.GAS.payWinnerCallback.gas,
+        {gas: lupiManagerHelper.GAS.createLupiManager.gas })
     .then( res => {
         console.log("    Deploying lupiManager - If you get VM Exception then check if ethereum-bridge is deployed with npm run bridge:deploy (This VM exception needs to be fixed..)");
         return lupiManager.deployed();
