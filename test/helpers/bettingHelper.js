@@ -5,7 +5,7 @@ var lupiManager = artifacts.require("./LupiManager.sol");
 var BigNumber = require('bignumber.js');
 var testHelper = new require('./testHelper.js');
 var lupiHelper = new require('../../app/javascripts/LupiHelper.js');
-var lupiManagerHelper = new require('../../app/javascripts/LupiManagerHelper.js');
+var gas = new require('../../app/javascripts/Gas.js');
 var moment = require('moment');
 
 var testParams;
@@ -80,7 +80,7 @@ async function _createGame( _testParams) {
     assert(lupiManagerOwnerAddress, _testParams.lupiManagerOwnerAddress , "lupiManagerOwnerAddress should be set");
     _testParams.bettingPeriodEnds = _testParams.bettingPeriodLength == 0 ? 0 :
                             _testParams.bettingPeriodLength + moment().utc().unix();
-    var gasEstimate = lupiManagerHelper.GAS.createGame.gas;
+    var gasEstimate = gas.lupiManager.createGame.gas;
     var tx = await _testParams.lupiManagerInstance.createGame(_testParams.requiredBetAmount, _testParams.ticketCountLimit, _testParams.bettingPeriodLength,
              _testParams.revealPeriodLength, _testParams.feePt, { from: _testParams.lupiManagerOwnerAddress, gas: gasEstimate});
     if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
@@ -194,7 +194,7 @@ var _placeBetFn = bet => {
         try {
             bet.encryptedBet = await testParams.gameInstance.sealBet(bet.number, testParams.salt, {from: bet.playerAddress});
             var placeBetTime = moment().utc().unix(); // save it so it will be teh revealStartTime if it's the last bet
-            var gasEstimate = lupiHelper.GAS.placeBetLast.gas;
+            var gasEstimate = gas.lupi.placeBetLast.gas;
             var tx = await testParams.gameInstance.placeBet(bet.encryptedBet,
                         { from: bet.playerAddress, value: bet.amount, gas: gasEstimate });
             if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
@@ -224,7 +224,7 @@ var _placeBetFn = bet => {
 
 async function _startRevealing(_testParams) {
     _testParams.revealStartTime = moment().utc().unix();
-    var gasEstimate = lupiHelper.GAS.startRevealing.gas;
+    var gasEstimate = gas.lupi.startRevealing.gas;
     var res = await _testParams.gameInstance.startRevealing({from: _testParams.defaultTxAccount, gas: gasEstimate});
     if (res.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
     testHelper.logGasUse(_testParams.testCaseName, "startRevealing()", "", res);
@@ -241,6 +241,7 @@ async function _startRevealing(_testParams) {
 
 async function _revealBets(_testParams) {
     testParams = _testParams;
+    _testParams.expWinningTicketId = (_testParams.expWinningNumber == 0) ? 0 :  _testParams.betsToPlace[_testParams.expWinningIdx-1].ticketId;
     if (_testParams.revealStartTime == 0) { // first reveal will do startRevealing
         _testParams.revealStartTime = moment().utc().unix();
     }
@@ -259,9 +260,9 @@ var _revealBetFn = bet => {
     // called for each betsToPlace[] via  Promise.all().
     return new Promise( async function (resolve, reject) {
         try {
-            var gasEstimate = lupiHelper.GAS.revealBetFirst.gas;
+            var gasEstimate = gas.lupi.revealBetFirst.gas;
             var revealTx = await testParams.gameInstance.revealBet(bet.ticketId, bet.number, testParams.salt,
-                    { from: bet.playerAddress, gas: gasEstimate} ); // TODO: add logic to use lupiHelper.GAS.revealBet too
+                    { from: bet.playerAddress, gas: gasEstimate} ); // TODO: add logic to use gas.lupi.revealBet too
             if (revealTx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
             var revealedEventIdx = 0;
             if( revealTx.logs.length == 2 ) { // this is the first reveal
@@ -293,12 +294,11 @@ async function _declareWinner(_testParams) {
     var playerBalanceBefore = web3.eth.getBalance(_testParams.playerAddressForBalanceCheck);
     var gameContractBalanceBefore = web3.eth.getBalance(_testParams.gameInstance.address);
     var gameOwnerBalanceBefore = web3.eth.getBalance(_testParams.gameOwnerAddress);
-    var gasEstimate = lupiHelper.GAS.declareWinner.gasBase + lupiHelper.GAS.declareWinner.gasPerGuess * _testParams.toRevealCt;
+    var gasEstimate = gas.lupi.declareWinner.gasBase + gas.lupi.declareWinner.gasPerGuess * _testParams.toRevealCt;
     var tx = await _testParams.gameInstance.declareWinner({ from: _testParams.defaultTxAccount,
             gas: gasEstimate })
     if (tx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
     testHelper.logGasUse(_testParams.testCaseName, "declareWinner()", "", tx);
-    _testParams.expWinningTicketId = (_testParams.expWinningNumber == 0) ? 0 :  _testParams.betsToPlace[_testParams.expWinningIdx-1].ticketId;
     assert.equal(tx.logs[0].event, "e_WinnerDeclared", "e_WinnerDeclared event should be emmitted");
     assert.equal(tx.logs[0].args.winningTicket.toString(), _testParams.expWinningTicketId.toString(), "winningTicket should be set in e_WinnerDeclared event");
     assert.equal(tx.logs[0].args.winningNumber.toString(), _testParams.expWinningNumber.toString(), "winningNumber should be set in e_WinnerDeclared event");
@@ -331,7 +331,7 @@ function _payWinnerOrRefund(_testParams) {
             if(_testParams.expWinningNumber == 0 ) {
                 var refundTxs = await testHelper.runInBatch(_testParams.betsToPlace, _refundFn, _testParams.batchSize);
             } else {
-                var gasEstimate = lupiHelper.GAS.payWinner.gas;
+                var gasEstimate = gas.lupi.payWinner.gas;
                 var payWinnerTxs = await _testParams.gameInstance.payWinner( { from: _testParams.defaultTxAccount, gas: gasEstimate} )
                 if (payWinnerTxs.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
                 testHelper.logGasUse(_testParams.testCaseName, "payWinner()", "", payWinnerTxs);
@@ -359,7 +359,7 @@ var _refundFn = bet => {
  // called for each betsToPlace[] via  Promise.all().
  return new Promise( async function (resolve, reject) {
         try {
-            var gasEstimate = lupiHelper.GAS.refund.gas;
+            var gasEstimate = gas.lupi.refund.gas;
             var refundTx = await testParams.gameInstance.refund(bet.ticketId, { from: testParams.defaultTxAccount, gas: gasEstimate });
             if (refundTx.receipt.gasUsed == gasEstimate) { throw new Error("All gas used") } // hack for expectedThrow() on privatechain
             testHelper.logGasUse(testParams.testCaseName, "refund()", "ticketId: " + bet.ticketId + " | bet idx: "

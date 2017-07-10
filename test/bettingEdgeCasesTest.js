@@ -1,6 +1,7 @@
 var lupi = artifacts.require("./Lupi.sol");
 var helper = new require('./helpers/testHelper.js');
 var lupiHelper = new require('../app/javascripts/LupiHelper.js');
+var gas = new require('../app/javascripts/Gas.js');
 var bettingHelper = new require('./helpers/bettingHelper.js');
 var moment = require('moment');
 
@@ -112,7 +113,7 @@ contract("Lupi betting edge case tests", accounts => {
             expWinningIdx: 0, expWinningNumber: 0, toRevealCt: 1 });
         await bettingHelper._createGame(testParams)
 
-        var gasEstimate = lupiHelper.GAS.placeBetLast.gas;
+        var gasEstimate = gas.lupi.placeBetLast.gas;
         var bet = testParams.betsToPlace[0];
         var tx = await testParams.gameInstance.placeBet(bet.encryptedBet,
                     { from: bet.playerAddress, value: testParams.requiredBetAmount, gas: gasEstimate });

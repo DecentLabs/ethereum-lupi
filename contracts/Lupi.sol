@@ -67,6 +67,11 @@ contract Lupi is owned {
             tickets[winningTicket].revealedBet,
             revealPeriodEnds);
     }
+    function getTicketCount() returns (uint ret) {
+        // needed by LupiManager, check if we could get rid of it:
+        //    https://ethereum.stackexchange.com/questions/20812/get-array-length-without-a-getter-from-other-contract
+        return tickets.length -1;
+    }
 
     function getFeeAmount() constant returns (uint feeAmount) {
         return (tickets.length - 1) * requiredBetAmount * feePt / 1000000;

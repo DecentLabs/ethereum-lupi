@@ -10,13 +10,14 @@ import { default as contract } from 'truffle-contract';
 
 import lupi_artifacts from '../../build/contracts/Lupi.json';
 import lupiManager_artifacts from '../../build/contracts/LupiManager.json';
+import lupiScheduler_artifacts from '../../build/contracts/LupiScheduler.json';
 import { default as secureRandom} from "secure-random/lib/secure-random.js";
 var moment = require('moment');
 var countdown = require('countdown');
 var FileSaver = require('file-saver');
 var Parse = require('parse');
 var LupiHelper = require('../javascripts/LupiHelper.js');
-var lupiManagerHelper = require('../javascripts/LupiManagerHelper.js');
+var gas = require('../javascripts/gas.js');
 
 var $ = window.$ = require('jquery');
 require('bootstrap');
@@ -25,15 +26,17 @@ require('bootstrap-material-design/dist/js/ripples.js');
 
 var Lupi = contract(lupi_artifacts);
 var lupiManager = contract(lupiManager_artifacts);
+var lupiScheduler = contract(lupiScheduler_artifacts);
 var accounts, account;
-var gameInstance, lupiManagerInstance;
+var gameInstance, lupiManagerInstance, lupiSchedulerInstance;
 
 // TODO: add accountchange event to do refreshUI (for Metamask users)
 window.App = {
     start: function() {
-        var self = this, lupiManagerOwner;
+        var self = this, lupiManagerOwner, lupiSchedulerOwner;
         return new Promise( async function (resolve, reject)  {
             lupiManager.setProvider(web3.currentProvider);
+            lupiScheduler.setProvider(web3.currentProvider);
             Lupi.setProvider(web3.currentProvider);
 
             web3.eth.getAccounts(async function(err, accs) {
@@ -60,10 +63,18 @@ window.App = {
                     self.listenToLupiManagerEvents();
                     lupiManagerOwner = await lupiManagerInstance.owner();
                     document.getElementById("lupiManagerOwner").innerHTML = lupiManagerOwner;
+                    document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
 
                     if (lupiManagerOwner ==  "0x" ) {
                         throw("lupiManager at " + lupiManagerInstance.address + " returned 0x owner() - not deployed?");
                     }
+
+                    lupiSchedulerInstance = await lupiScheduler.deployed();
+                    lupiSchedulerOwner = await lupiSchedulerInstance.owner();
+
+                    document.getElementById("lupiSchedulerAddress").innerHTML = lupiSchedulerInstance.address;
+                    document.getElementById("lupiSchedulerOwner").innerHTML = lupiSchedulerOwner;
+
                     await self.refreshGameInstance();
                     await self.refreshUI();
                     resolve();
@@ -256,7 +267,6 @@ window.App = {
                 if ( document.getElementById("accountInput").value == "" ) {
                     document.getElementById("accountInput").value = account;
                 }
-                document.getElementById("lupiManagerAddress").innerHTML = lupiManagerInstance.address;
 
                 web3.eth.getBlockNumber(function(error, res) {
                     if (error) {
@@ -301,6 +311,15 @@ window.App = {
                     }
                 });
 
+                web3.eth.getBalance(lupiSchedulerInstance.address, function(error, res) {
+                    if (error) {
+                        console.error("refreshUI().getBalance(lupiSchedulerInstance.address) error", error);
+                        throw(error);
+                    } else {
+                        $("#lupiSchedulerBalance").text( web3.fromWei(res).valueOf() );
+                    }
+                });
+
                 web3.eth.getBalance(gameInstance.address, function(error, res) {
                     if (error) {
                         console.error("refreshUI().getBalance(gameInstance.address) error", error);
@@ -321,11 +340,19 @@ window.App = {
 
                 document.getElementById("revealPeriodLength1").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
                 document.getElementById("revealPeriodLength2").innerHTML  = countdown(0, roundInfo.revealPeriodLength*1000).toString();
-                var bettingPeriodEndsText = roundInfo.ticketCountLimit == 0 ? "" : "when " + roundInfo.ticketCountLimit + " bets are placed";
+
+
+                var bettingPeriodEndsText = roundInfo.ticketCountLimit == 0 ? "" : "when " + roundInfo.ticketCountLimit + " guesses are placed";
                 bettingPeriodEndsText += roundInfo.ticketCountLimit !== 0 && roundInfo.bettingPeriodEnds != 0 ? " or " : "";
                 bettingPeriodEndsText += roundInfo.bettingPeriodEnds == 0 ? "" : "latest on " + moment.unix(roundInfo.bettingPeriodEnds).format("DD MMM YYYY HH:mm:ss");
                 document.getElementById("bettingPeriodEndsText").innerHTML = bettingPeriodEndsText;
-                document.getElementById("revealPeriodEnds").innerHTML = moment.unix(roundInfo.revealPeriodEnds).format("DD MMM YYYY HH:mm:ss");
+
+                var revealPeriodStartText = moment.unix(roundInfo.bettingPeriodEnds).format("DD MMM YYYY HH:mm:ss");
+                $("#revealPeriodStart1").text( revealPeriodStartText );
+                var revealPeriodEndsText = moment.unix(roundInfo.revealPeriodEnds).format("DD MMM YYYY HH:mm:ss");
+                $("#declareWinnerTime1").text( revealPeriodEndsText );
+                $("#declareWinnerTime2").text( revealPeriodEndsText );
+                $("#revealPeriodEnds").text( revealPeriodEndsText);
                 document.getElementById("roundInfoDebug").innerHTML = JSON.stringify(roundInfo,null, 4);
                 document.getElementById("winningNumber").innerHTML = roundInfo.winningNumber;
                 document.getElementById("winningAddress").innerHTML = roundInfo.winningAddress;
@@ -435,8 +462,8 @@ window.App = {
             var salt = "0x" + LupiHelper.toHexString( secureRandom(32, {type: 'Array'}));
             var sealedBet = await gameInstance.sealBetForAddress(account.toString(), guess, salt);
 
-            var gasEstimate = LupiHelper.GAS.placeBetLast.gas; // must use gas estimate for last because other bets could have landed...
-            var gasPrice = Math.round(LupiHelper.GAS.placeBetLast.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = gas.lupi.placeBetLast.gas; // must use gas estimate for last because other bets could have landed...
+            var gasPrice = Math.round(gas.lupi.placeBetLast.price * await gas.getDefaultGasPrice());
 
             var tx = await gameInstance.placeBet(sealedBet, {from: account, value: roundInfo.requiredBetAmount,
                                             gas: gasEstimate, gasPrice: gasPrice})
@@ -573,8 +600,8 @@ window.App = {
         var self = this;
         try {
             self.setStatus('info', "Initiating transaction... (please wait)");
-            var gasEstimate = LupiHelper.GAS.startRevealing.gas;
-            var gasPrice = Math.round(LupiHelper.GAS.startRevealing.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = gas.lupi.startRevealing.gas;
+            var gasPrice = Math.round(gas.lupi.startRevealing.price * await gas.getDefaultGasPrice());
             var tx = await gameInstance.startRevealing({from: account, gas: gasEstimate, gasPrice: gasPrice })
             console.debug("startRevealing() gas used:" , tx.receipt.gasUsed);
             if( tx.receipt.gasUsed == gasEstimate) {
@@ -606,11 +633,11 @@ window.App = {
             var roundInfo = new LupiHelper.RoundInfo( await gameInstance.getRoundInfo());
             var gasEstimate, gasPrice;
             if (roundInfo.revealedCount == 0) {
-                gasEstimate = LupiHelper.GAS.revealBetFirst.gas;
-                gasPrice = Math.round(LupiHelper.GAS.revealBetFirst.price * await LupiHelper.getDefaultGasPrice());
+                gasEstimate = gas.lupi.revealBetFirst.gas;
+                gasPrice = Math.round(gas.lupi.revealBetFirst.price * await gas.getDefaultGasPrice());
             } else {
-                gasEstimate = LupiHelper.GAS.revealBet.gas;
-                gasPrice = Math.round(LupiHelper.GAS.revealBet.price * await LupiHelper.getDefaultGasPrice());
+                gasEstimate = gas.lupi.revealBet.gas;
+                gasPrice = Math.round(gas.lupi.revealBet.price * await gas.getDefaultGasPrice());
             }
             var tx = await gameInstance.revealBetForAddress(ticket.account, ticket.ticketId, ticket.guess, ticket.salt,
                         {from: account, gas: gasEstimate, gasPrice: gasPrice });
@@ -648,10 +675,10 @@ window.App = {
         var self = this;
         try {
             self.setStatus('info', "Initiating transaction, please wait.");
-            var gasPrice = Math.round(LupiHelper.GAS.declareWinner.price * await LupiHelper.getDefaultGasPrice());
+            var gasPrice = Math.round(gas.lupi.declareWinner.price * await gas.getDefaultGasPrice());
             var roundInfo = new LupiHelper.RoundInfo( await gameInstance.getRoundInfo());
-            var gasEstimate = LupiHelper.GAS.declareWinner.gasBase
-                        + roundInfo.revealedCount * LupiHelper.GAS.declareWinner.gasPerGuess;
+            var gasEstimate = gas.lupi.declareWinner.gasBase
+                        + roundInfo.revealedCount * gas.lupi.declareWinner.gasPerGuess;
 
             var tx = await gameInstance.declareWinner({from: account, gas: gasEstimate, gasPrice: gasPrice })
             console.debug("declareWinner() gas used:" , tx.receipt.gasUsed);
@@ -671,8 +698,8 @@ window.App = {
         var self = this;
         try {
             self.setStatus('info', "Initiating transaction, please wait");
-            var gasEstimate = LupiHelper.GAS.payWinner.gas;
-            var gasPrice = Math.round(LupiHelper.GAS.payWinner.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = gas.lupi.payWinner.gas;
+            var gasPrice = Math.round(gas.lupi.payWinner.price * await gas.getDefaultGasPrice());
             var tx = await gameInstance.payWinner( {from: account, gas: gasEstimate, gasPrice: gasPrice })
             console.debug("payWinner() gas used:" , tx.receipt.gasUsed);
             if( tx.receipt.gasUsed == gasEstimate) {
@@ -692,8 +719,8 @@ window.App = {
         try {
             self.setStatus('info', "Initiating transaction... (please wait)");
             var ticketId =  parseInt(document.getElementById("refundTicketId").value);
-            var gasEstimate = LupiHelper.GAS.refund.gas;
-            var gasPrice = Math.round(LupiHelper.GAS.refund.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = gas.lupi.refund.gas;
+            var gasPrice = Math.round(gas.lupi.refund.price * await gas.getDefaultGasPrice());
             var tx = await gameInstance.refund( ticketId, {from: account, gas: gasEstimate, gasPrice: gasPrice})
             console.debug("refund() gas used:" , tx.receipt.gasUsed);
             if( tx.receipt.gasUsed == gasEstimate) {
@@ -717,8 +744,8 @@ window.App = {
             var revealPeriodLength = parseInt(document.getElementById("revealPeriodLengthInput").value) * 60;
             var bettingPeriodLength = parseInt(document.getElementById("bettingPeriodLengthInput").value) * 60;
             var feePt = document.getElementById("feePtInput").value * 10000;
-            var gasEstimate = lupiManagerHelper.GAS.createGame.gas;
-            var gasPrice = Math.round(lupiManagerHelper.GAS.createGame.price * await LupiHelper.getDefaultGasPrice());
+            var gasEstimate = gas.lupiManager.createGame.gas;
+            var gasPrice = Math.round(gas.lupiManager.createGame.price * await gas.getDefaultGasPrice());
 
             var tx = await lupiManagerInstance.createGame(requiredBetAmount, ticketCountLimit, bettingPeriodLength, revealPeriodLength, feePt,
                      {from: account, gas: gasEstimate, gasPrice: gasPrice})
@@ -753,10 +780,10 @@ window.App = {
         return new Promise( async function (resolve, reject) {
             var self = this;
             try {
-                var gasEstimate = lupiManagerHelper.GAS.scheduleStartRevealing.gas;
+                var gasEstimate = gas.lupiScheduler.scheduleStartRevealing.gas;
 
-                var gasPrice = Math.round(lupiManagerHelper.GAS.scheduleStartRevealing.price * await LupiHelper.getDefaultGasPrice());
-                var tx = await lupiManagerInstance.scheduleStartRevealing( gameAddress,
+                var gasPrice = Math.round(gas.lupiScheduler.scheduleStartRevealing.price * await gas.getDefaultGasPrice());
+                var tx = await lupiSchedulerInstance.scheduleStartRevealing( gameAddress,
                                 {from: account, gas: gasEstimate, gasPrice: gasPrice})
                 var queryId = tx.logs[0].args.queryId;
                 if (typeof queryId == "undefined") {
