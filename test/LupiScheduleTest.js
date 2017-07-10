@@ -49,6 +49,9 @@ contract("LupiManager schedule tests", accounts => {
 
     it("should be possible to schedule startRevealing when bettingPeriodEnds is set", async function() {
         var testCaseName = "LupiManager Scheduling 1";
+        if (web3.version.network == 1976) {
+            assert(false, "This test is not working on privatechain")
+        }
         var bettingPeriodLength = 2;
         var balanceBefore = web3.eth.getBalance(lupiSchedulerInstance.address)
         var gasEstimate = gas.lupiManager.createGame.gas;
@@ -110,7 +113,9 @@ contract("LupiManager schedule tests", accounts => {
             expWinningIdx: 1, expWinningNumber: 2,
             bettingPeriodLength: 5, revealPeriodLength: 2, feePt: 10000,  requiredBetAmount: web3.toWei(1)});
             var testCaseName = "LupiManager Scheduling 2";
-
+            if (web3.version.network == 1976) {
+                assert(false, "This test is not working on privatechain")
+            }
             /**** Create game & schedule startRevealing ***/
             await bettingHelper._createGame(testParams);
 
