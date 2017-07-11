@@ -6,7 +6,7 @@ import "./usingOraclize.sol";
 
 contract LupiScheduler is owned, usingOraclize {
 
-    uint8 constant public CB_EXTRA_SECS = 1; // TODO: check/test for optimal value
+    uint8 constant public CB_EXTRA_SECS = 2; // TODO: check/test for optimal value
 
     // *** These are hacks for cheaper string comparison at callback
     string constant public START_REVEALING = "StartRevealing";
@@ -108,7 +108,7 @@ contract LupiScheduler is owned, usingOraclize {
             e_OraclizeScheduleError(ERR_SCH_NOT_ENOUGH_BALANCE);
             return 0;
         }
-        
+
         uint cbTimeStamp = gameInstance.revealPeriodEnds() + CB_EXTRA_SECS;
         // TODO: make it iterative so
         //      a) ticketcount is not limited by max gas
