@@ -6,8 +6,6 @@ import "./usingOraclize.sol";
 
 contract LupiScheduler is owned, usingOraclize {
 
-    address[] public games;
-
     uint8 constant public CB_EXTRA_SECS = 1; // TODO: check/test for optimal value
 
     // *** These are hacks for cheaper string comparison at callback
