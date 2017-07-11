@@ -49,6 +49,10 @@ contract LupiScheduler is owned, usingOraclize {
     }
     // TODO: fx to send money back to owner, figure out topup mechanics.
 
+    function withdraw() payable onlyOwner {
+        msg.sender.transfer(msg.value);
+    }
+
     function setGasParams(uint _oraclizeGasPrice, uint _gasStartRevealing, uint _gasRevealPerTicket,
             uint _gasDeclareWinnerBase, uint _gasDeclareWinnerPerTicket,
             uint _gasRefundPerTicket, uint _gasPayWinner) onlyOwner {

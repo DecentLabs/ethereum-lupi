@@ -34,6 +34,9 @@ contract("Lupi admin tests", accounts => {
         assert.equal(roundInfo.revealPeriodEnds, 0, "revealPeriodEnds should be 0");
     });
 
+    it('should be possible to withdraw');
+    it('only the owner should be able to withdraw')
+
     it('should be possible to change owner', async function () {
         var newOwner = accounts[1];
         var instance = await lupi.new(web3.toWei(1), 2, 0, 60, 10000);
