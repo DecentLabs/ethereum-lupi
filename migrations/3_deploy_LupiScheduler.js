@@ -1,7 +1,8 @@
 var lupiScheduler = artifacts.require("./LupiScheduler.sol");
 var gas = new require("../app/javascripts/Gas.js");
+var lupiSchedulerInstance;
 
-module.exports = function(deployer, network) {
+module.exports = function(deployer, network, accounts) {
     deployer.deploy(lupiScheduler,
         gas.lupiScheduler.oraclizeGasPrice,
         gas.lupiScheduler.startRevealingCallBack.gas,
@@ -15,7 +16,8 @@ module.exports = function(deployer, network) {
         console.log("    Deploying LupiScheduler - If you get VM Exception then check if ethereum-bridge is deployed with npm run bridge:deploy (This VM exception needs to be fixed..)");
         return lupiScheduler.deployed();
     }).then( instance => {
-        return instance.getOraclizeCbAddress();
+        lupiSchedulerInstance = instance;
+        return lupiSchedulerInstance.getOraclizeCbAddress();
     }).then( res => {
         if (typeof res == "undefined") {
             var err = "\x1b[31mError after deploying lupiManager: oraclize_cbAddress() is not set.\x1b[0m"
@@ -25,6 +27,14 @@ module.exports = function(deployer, network) {
             throw new Error(err);
         }
         console.log("3_deploy_LupiScheduler.js: Oraclize contract found. oraclize_cbAddress:", res);
+        var onTestRpc = web3.version.network == 999 ? true : false;
+        if( onTestRpc) {
+            console.log("on testrpc. Sending 10 ETH to lupiScheduler");
+            console.log(lupiSchedulerInstance.address);
+            return web3.eth.sendTransaction({from:accounts[0], to: lupiSchedulerInstance.address, value: web3.toWei(10)})
+        } else {
+            return;
+        }
     });
 
 };

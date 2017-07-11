@@ -7,7 +7,21 @@ module.exports = {
         development: {
             host: 'localhost',
             port: 8545,
-            network_id: '*', // Match any network id
+            network_id: 999, // set in runtesrpc.sh
+            gas: 4707806
+        },
+
+        privatechain: {
+            host: 'localhost',
+            port: 8545,
+            network_id: 1976, // set in privatechain/runprivatechain.sh
+            gas: 4707806
+        },
+
+        ropstenLocal: { // when running with runropsten.sh
+            host: 'localhost',
+            port: 8545,
+            network_id: 3,
             gas: 4707806
         },
 
