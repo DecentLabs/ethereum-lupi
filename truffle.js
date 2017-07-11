@@ -11,7 +11,8 @@ module.exports = {
             gas: 4707806
         },
 
-        ropsten: {
+
+        ropstenInfura: {
             host: "https://ropsten.infura.io",
             port: 80,
             network_id: 3,
