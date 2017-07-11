@@ -260,6 +260,7 @@ contract("Lupi betting edge case tests", accounts => {
         testParams.expWinningNumber = 0; // for refund
         await helper.expectThrow( bettingHelper._payWinnerOrRefund(testParams));
         testParams.expWinningNumber = 2; // for payWinner
+        testParams.expWinningIdx = 1;
         await helper.expectThrow( bettingHelper._payWinnerOrRefund(testParams));
 
         //****** while revealing  *****
