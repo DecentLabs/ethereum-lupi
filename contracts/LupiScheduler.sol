@@ -100,14 +100,15 @@ contract LupiScheduler is owned, usingOraclize {
 
     event e_declareWinnerScheduled(bytes32 queryId);
     function scheduleDeclareWinner(address gameAddress) payable returns (bytes32 queryId) {
+        // called from _callback after startRevealing
+        Lupi gameInstance = Lupi(gameAddress);
         uint gasRequired;
         gasRequired = gasDeclareWinnerBaseCallBack  + gasDeclareWinnerPerTicketCallBack * gameInstance.getTicketCount();
         if (oraclize_getPrice("identity", gasRequired ) > this.balance) {
             e_OraclizeScheduleError(ERR_SCH_NOT_ENOUGH_BALANCE);
             return 0;
         }
-        // called from _callback after startRevealing
-        Lupi gameInstance = Lupi(gameAddress);
+        
         uint cbTimeStamp = gameInstance.revealPeriodEnds() + CB_EXTRA_SECS;
         // TODO: make it iterative so
         //      a) ticketcount is not limited by max gas
